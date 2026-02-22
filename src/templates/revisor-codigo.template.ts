@@ -18,9 +18,4 @@ Genera un Informe Markdown con:
 - Recomendaciones de mejora
 - Antipatrones y patrones bien implementados
 
-**IMPORTANTE:** Crea un archivo "analisis-calidad-codigo.md" en la raíz del proyecto.
-
-######################
-#   CONTEXTO USUARIO     #
-######################
-`;
+**IMPORTANTE:** Crea un archivo "analisis-calidad-codigo.md" en la raíz del proyecto.`;

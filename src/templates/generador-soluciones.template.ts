@@ -24,9 +24,4 @@ Crea un archivo ONE_SPEC.md con:
 
 ## Trazabilidad
 
-**IMPORTANTE:** Crea el archivo "ONE_SPEC.md" en la raíz del proyecto con la solución detallada.
-
-######################
-#   CONTEXTO USUARIO     #
-######################
-`;
+**IMPORTANTE:** Crea el archivo "ONE_SPEC.md" en la raíz del proyecto con la solución detallada.`;

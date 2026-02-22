@@ -13,9 +13,4 @@ Genera un Informe Markdown con las siguientes secciones:
 - Próximos pasos
 - Recursos útiles
 
-**IMPORTANTE:** Una vez generado el informe, crea un archivo "informe-exploracion.md" en la raíz del proyecto.
-
-######################
-#   CONTEXTO USUARIO     #
-######################
-`;
+**IMPORTANTE:** Una vez generado el informe, crea un archivo "informe-exploracion.md" en la raíz del proyecto.`;

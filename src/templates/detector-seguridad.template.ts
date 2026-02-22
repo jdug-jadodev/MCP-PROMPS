@@ -9,9 +9,4 @@ Genera informe Markdown con:
 - Tabla de vulnerabilidades (severidad, tipo, ubicación, CWE, descripción, remediación, esfuerzo)
 - Recomendaciones priorizadas (inmediato, corto, mediano plazo)
 
-**IMPORTANTE:** Crea un archivo "brechas-seguridad.md" en la raíz del proyecto, si ya existe lo actualizas con la nueva informacion.
-
-######################
-#   CONTEXTO USUARIO     #
-######################
-`;
+**IMPORTANTE:** Crea un archivo "brechas-seguridad.md" en la raíz del proyecto, si ya existe lo actualizas con la nueva informacion.`;
