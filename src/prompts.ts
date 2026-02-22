@@ -33,4 +33,9 @@ export const prompts = [
     name: "limpiar-one-spec",
     description: "limpia el one spec y deja la plantilla lista para un nuevo uso"
   }
+,
+  {
+    name: "refactorizacion-codigo",
+    description: "Asiste al desarrollador en la refactorización de componentes sin alterar su funcionalidad ni contratos públicos. Analiza responsabilidades mezcladas, code smells, dependencias y principios SOLID aplicables. Propone una versión refactorizada explicando los cambios, beneficios y métricas antes/después."
+  }
 ];

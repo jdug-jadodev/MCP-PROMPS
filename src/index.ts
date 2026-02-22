@@ -1,3 +1,7 @@
+declare global {
+  var __forcePromptReload: (() => void) | undefined;
+}
+
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -6,13 +10,52 @@ import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { prompts } from "./prompts.js";
-import { templates } from "./templates/index.js";
-import * as fs from "fs";
-import * as path from "path";
+import { tools } from "./tools/index.js";
+import path from 'path';
+import fs from 'fs';
 
-const srcDir = path.join(__dirname, "..", "src");
-const templatesDir = path.join(srcDir, "templates");
+// Cache para los módulos recargables
+let promptsCache: any[] = [];
+let templatesCache: Record<string, string> = {};
+
+// Función para recargar módulos desde disco usando require (CommonJS)
+function reloadModules() {
+  try {
+    // Limpiar caché de require
+    const promptsPath = path.join(__dirname, 'prompts.js');
+    const templatesPath = path.join(__dirname, 'templates', 'index.js');
+    
+    // Eliminar del caché de require
+    delete require.cache[require.resolve(promptsPath)];
+    delete require.cache[require.resolve(templatesPath)];
+    
+    // También limpiar caché de los templates individuales si es necesario
+    const templatesDir = path.join(__dirname, 'templates');
+    if (fs.existsSync(templatesDir)) {
+      const templateFiles = fs.readdirSync(templatesDir);
+      templateFiles.forEach(file => {
+        if (file.endsWith('.js') || file.endsWith('.ts')) {
+          const templatePath = path.join(templatesDir, file);
+          delete require.cache[require.resolve(templatePath)];
+        }
+      });
+    }
+    
+    // Recargar módulos
+    const promptsModule = require(promptsPath);
+    const templatesModule = require(templatesPath);
+    
+    promptsCache = promptsModule.prompts || [];
+    templatesCache = templatesModule.templates || {};
+    
+    console.error(`🔄 Módulos recargados: ${promptsCache.length} prompts disponibles`);
+  } catch (error) {
+    console.error('❌ Error recargando módulos:', error);
+  }
+}
+
+// Carga inicial
+reloadModules();
 
 const server = new Server(
   {
@@ -29,7 +72,7 @@ const server = new Server(
 
 server.setRequestHandler(ListPromptsRequestSchema, async () => {
   return {
-    prompts: prompts.map(p => ({
+    prompts: promptsCache.map(p => ({
       name: p.name,
       description: p.description,
     })),
@@ -48,12 +91,12 @@ server.setRequestHandler(GetPromptRequestSchema, async (request) => {
   const promptName = request.params.name;
   const args = request.params.arguments || {};
 
-  const promptDefinition = prompts.find(p => p.name === promptName);
+  const promptDefinition = promptsCache.find(p => p.name === promptName);
   if (!promptDefinition) {
     throw new Error(`Prompt no encontrado: ${promptName}`);
   }
 
-  const template = templates[promptName as keyof typeof templates];
+  const template = templatesCache[promptName];
   if (!template) {
     throw new Error(`Template no encontrado para: ${promptName}`);
   }
@@ -76,170 +119,56 @@ server.setRequestHandler(GetPromptRequestSchema, async (request) => {
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
-    tools: [
-      {
-        name: "guardar-prompt",
-        description:
-          "Guarda un nuevo prompt personalizado en el servidor MCP de forma persistente y lo hace disponible inmediatamente sin reiniciar.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            name: {
-              type: "string",
-              description:
-                "Nombre único del prompt (solo letras minúsculas, números y guiones). Ejemplo: mi-nuevo-prompt",
-            },
-            description: {
-              type: "string",
-              description: "Descripción corta del propósito del prompt.",
-            },
-            templateContent: {
-              type: "string",
-              description:
-                "Contenido completo de la plantilla del prompt (Markdown o texto plano).",
-            },
-          },
-          required: ["name", "description", "templateContent"],
-        },
-      },
-    ],
+    tools: tools.map((tool: any) => tool.metadata),
   };
 });
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  if (request.params.name !== "guardar-prompt") {
+  const tool = tools.find((t: any) => t.metadata?.name === request.params.name);
+  if (!tool) {
     throw new Error(`Herramienta no encontrada: ${request.params.name}`);
   }
-
-  const args = request.params.arguments as {
-    name: string;
-    description: string;
-    templateContent: string;
-  };
-  const { name, description, templateContent } = args;
-
-  if (!/^[a-z0-9-]+$/.test(name)) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `❌ Error de validación: El nombre "${name}" no es válido. Solo se permiten letras minúsculas (a-z), números (0-9) y guiones (-).`,
-        },
-      ],
-      isError: true,
-    };
-  }
-
-  if (prompts.find((p) => p.name === name)) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `❌ Error de duplicado: Ya existe un prompt con el nombre "${name}". Solo se permite crear prompts nuevos.`,
-        },
-      ],
-      isError: true,
-    };
-  }
-
-  const camelCaseName = name.replace(/-([a-z0-9])/g, (_, c: string) =>
-    c.toUpperCase()
-  );
-  const templateVarName = `${camelCaseName}Template`;
-  const templateFileName = `${name}.template.ts`;
-  const templateFilePath = path.join(templatesDir, templateFileName);
-  const promptsFilePath = path.join(srcDir, "prompts.ts");
-  const templatesIndexPath = path.join(templatesDir, "index.ts");
-
-  let promptsFileContent: string;
-  let templatesIndexContent: string;
-  try {
-    promptsFileContent = fs.readFileSync(promptsFilePath, "utf-8");
-    templatesIndexContent = fs.readFileSync(templatesIndexPath, "utf-8");
-  } catch (err) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `❌ Error al leer archivos del servidor: ${(err as Error).message}`,
-        },
-      ],
-      isError: true,
-    };
-  }
-
-  const templateFileContent =
-    `export const ${templateVarName} = ${JSON.stringify(templateContent)};\n`;
-
-  const newPromptEntry =
-    `  {\n    name: ${JSON.stringify(name)},\n    description: ${JSON.stringify(description)}\n  }`;
-  const updatedPromptsContent = promptsFileContent.replace(
-    /(\];)/,
-    `,\n${newPromptEntry}\n$1`
-  );
-
-  const importStatement = `import { ${templateVarName} } from './${name}.template.js';`;
-  let updatedTemplatesIndex = templatesIndexContent
-    .replace(
-      /(\nexport const templates)/,
-      `\n${importStatement}\n$1`
-    )
-    .replace(
-      /(\n\};)/,
-      `,\n  ${JSON.stringify(name)}: ${templateVarName}$1`
-    );
-
-  try {
-    fs.writeFileSync(templateFilePath, templateFileContent, "utf-8");
-    try {
-      fs.writeFileSync(promptsFilePath, updatedPromptsContent, "utf-8");
-      try {
-        fs.writeFileSync(templatesIndexPath, updatedTemplatesIndex, "utf-8");
-      } catch (err) {
-        fs.writeFileSync(promptsFilePath, promptsFileContent, "utf-8");
-        fs.unlinkSync(templateFilePath);
-        throw err;
-      }
-    } catch (err) {
-      try { fs.unlinkSync(templateFilePath); } catch { /* ignorar */ }
-      throw err;
-    }
-  } catch (err) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `❌ Error al persistir el prompt en disco: ${(err as Error).message}`,
-        },
-      ],
-      isError: true,
-    };
-  }
-
-  prompts.push({ name, description });
-  (templates as Record<string, string>)[name] = templateContent;
-
-  return {
-    content: [
-      {
-        type: "text",
-        text:
-          `✅ Prompt "${name}" guardado exitosamente.\n\n` +
-          `📁 Archivos actualizados:\n` +
-          `  • src/templates/${templateFileName}\n` +
-          `  • src/prompts.ts\n` +
-          `  • src/templates/index.ts\n\n` +
-          `🚀 El prompt está disponible inmediatamente. Puedes usarlo ahora con GetPrompt.`,
-      },
-    ],
-  };
+  return tool(request, {});
 });
 
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("🚀 Servidor MCP de prompts iniciado (versión modular)");
-  console.error("📋 Prompts disponibles:", prompts.map(p => p.name).join(", "));
+  console.error("🚀 Servidor MCP de prompts iniciado (versión con recarga en caliente)");
+  console.error("📋 Prompts disponibles:", promptsCache.map(p => p.name).join(", "));
+  
+  // Vigilar cambios en archivos para recarga automática
+  if (process.env.NODE_ENV === 'development') {
+    const watchPrompts = path.join(__dirname, 'prompts.js');
+    const watchTemplates = path.join(__dirname, 'templates');
+    
+    // Debounce para evitar múltiples recargas
+    let timeout: NodeJS.Timeout;
+    
+    fs.watch(watchPrompts, (eventType) => {
+      if (eventType === 'change') {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          console.error('📝 Detectado cambio en prompts.js, recargando...');
+          reloadModules();
+          console.error('✅ Prompts recargados');
+        }, 100);
+      }
+    });
+    
+    fs.watch(watchTemplates, { recursive: true }, (eventType, filename) => {
+      if (eventType === 'change' && filename?.endsWith('.js')) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          console.error(`📝 Detectado cambio en ${filename}, recargando...`);
+          reloadModules();
+          console.error('✅ Templates recargados');
+        }, 100);
+      }
+    });
+  }
 }
 
 main().catch(console.error);
+
+global.__forcePromptReload = reloadModules;
