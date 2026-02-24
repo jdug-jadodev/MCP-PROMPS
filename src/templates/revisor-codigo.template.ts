@@ -18,4 +18,6 @@ Genera un Informe Markdown con:
 - Recomendaciones de mejora
 - Antipatrones y patrones bien implementados
 
+No modificar nada de cogigo solo generar informe de revisión. El objetivo es identificar áreas de mejora sin alterar el código existente.
+
 **IMPORTANTE:** Crea un archivo "analisis-calidad-codigo.md" en la raíz del proyecto.`;

@@ -1,7 +1,7 @@
 export const commitAutomaticoIaTemplate = `# Commit Automático con IA
 
 ## Objetivo
-Analizar los cambios, generar mensaje de commit y ejecutar git add + git commit.
+Analizar los cambios, generar mensaje de commit y ejecutar git add . + git commit -am "mensaje generado". NUNCA hacer push.
 
 ## Flujo
 
@@ -26,7 +26,7 @@ Basado en los cambios, crear mensaje en formato:
 ### 3. Ejecutar commit
 \`\`\`bash
 git add .
-git commit -m "<mensaje_generado>"
+git commit -am "<mensaje_generado>"
 \`\`\`
 
 ### 4. Mostrar resultado y dejar push listo
