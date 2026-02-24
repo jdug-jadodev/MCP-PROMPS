@@ -14,22 +14,17 @@ import { tools } from "./tools/index.js";
 import path from 'path';
 import fs from 'fs';
 
-// Cache para los módulos recargables
 let promptsCache: any[] = [];
 let templatesCache: Record<string, string> = {};
 
-// Función para recargar módulos desde disco usando require (CommonJS)
 function reloadModules() {
   try {
-    // Limpiar caché de require
     const promptsPath = path.join(__dirname, 'prompts.js');
     const templatesPath = path.join(__dirname, 'templates', 'index.js');
     
-    // Eliminar del caché de require
     delete require.cache[require.resolve(promptsPath)];
     delete require.cache[require.resolve(templatesPath)];
     
-    // También limpiar caché de los templates individuales si es necesario
     const templatesDir = path.join(__dirname, 'templates');
     if (fs.existsSync(templatesDir)) {
       const templateFiles = fs.readdirSync(templatesDir);
@@ -41,7 +36,6 @@ function reloadModules() {
       });
     }
     
-    // Recargar módulos
     const promptsModule = require(promptsPath);
     const templatesModule = require(templatesPath);
     
@@ -54,7 +48,6 @@ function reloadModules() {
   }
 }
 
-// Carga inicial
 reloadModules();
 
 const server = new Server(
@@ -137,12 +130,10 @@ async function main() {
   console.error("🚀 Servidor MCP de prompts iniciado (versión con recarga en caliente)");
   console.error("📋 Prompts disponibles:", promptsCache.map(p => p.name).join(", "));
   
-  // Vigilar cambios en archivos para recarga automática
   if (process.env.NODE_ENV === 'development') {
     const watchPrompts = path.join(__dirname, 'prompts.js');
     const watchTemplates = path.join(__dirname, 'templates');
     
-    // Debounce para evitar múltiples recargas
     let timeout: NodeJS.Timeout;
     
     fs.watch(watchPrompts, (eventType) => {
