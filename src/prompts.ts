@@ -38,4 +38,14 @@ export const prompts = [
     name: "refactorizacion-codigo",
     description: "Asiste al desarrollador en la refactorización de componentes sin alterar su funcionalidad ni contratos públicos. Analiza responsabilidades mezcladas, code smells, dependencias y principios SOLID aplicables. Propone una versión refactorizada explicando los cambios, beneficios y métricas antes/después."
   }
+,
+  {
+    name: "solucion-en-one_spec",
+    description: "Proporciona una solución completa y detallada usando el ONE_SPEC.md como guía para su futura ejecución"
+  }
+,
+  {
+    name: "commit-automatico-ia",
+    description: "Genera commits automáticos con mensajes contextuales basados en análisis de cambios Git. NUNCA hace push."
+  }
 ];
