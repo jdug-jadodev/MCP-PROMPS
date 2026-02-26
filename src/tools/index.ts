@@ -1,5 +1,9 @@
-// src/tools/index.ts
 import { guardarPromptTool } from "./guardarPromptTool";
+import { quickCommitCommitTool, quickCommitGetChangesTool } from "./quickCommitTool";
 import { Tool } from "./types";
 
-export const tools: Tool[] = [guardarPromptTool];
+export const tools: Tool[] = [
+	guardarPromptTool,
+	quickCommitGetChangesTool,
+	quickCommitCommitTool,
+];

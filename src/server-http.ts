@@ -8,11 +8,9 @@ import fs from 'fs';
 const app = express();
 app.use(express.json());
 
-// Cache para los módulos recargables
 let promptsCache: any[] = [];
 let templatesCache: Record<string, string> = {};
 
-// Función para recargar módulos desde disco
 function reloadModules() {
   try {
     const promptsPath = path.join(__dirname, 'prompts.js');
@@ -44,10 +42,8 @@ function reloadModules() {
   }
 }
 
-// Carga inicial
 reloadModules();
 
-// Helper para rellenar templates
 const fillTemplate = (template: any, args: any) => {
   return template.replace(/\{\{(\w+)\}\}/g, (_: any, key: any) => {
     return args[key] !== undefined && args[key] !== '' 
@@ -56,7 +52,6 @@ const fillTemplate = (template: any, args: any) => {
   });
 };
 
-// Endpoint SSE principal para el protocolo MCP
 app.post('/mcp', async (req: Request, res: Response) => {
   const message = req.body;
   
@@ -190,7 +185,6 @@ app.post('/mcp', async (req: Request, res: Response) => {
         break;
 
       case 'notifications/initialized':
-        // No requiere respuesta
         return res.status(200).send();
 
       default:
@@ -218,7 +212,6 @@ app.post('/mcp', async (req: Request, res: Response) => {
   }
 });
 
-// Endpoint de salud
 app.get('/health', (_req: Request, res: Response) => res.send('OK'));
 
 const port = process.env.PORT || 3000;

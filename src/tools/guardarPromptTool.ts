@@ -1,11 +1,9 @@
-// src/tools/guardarPromptTool.ts
 import * as fs from "fs";
 import * as path from "path";
 import { prompts } from "../prompts.js";
 import { templates } from "../templates/index.js";
 import type { CallToolRequest } from "@modelcontextprotocol/sdk/types.js";
 
-// Variable global para forzar recarga (definida en tu servidor principal)
 declare const global: {
   __forcePromptReload?: () => void;
 };
@@ -21,7 +19,6 @@ const guardarPromptToolImpl = async (request: CallToolRequest, context: any) => 
   };
   const { name, description, templateContent } = args;
 
-  // Validaciones
   if (!/^[a-z0-9-]+$/.test(name)) {
     return {
       content: [
@@ -71,17 +68,14 @@ const guardarPromptToolImpl = async (request: CallToolRequest, context: any) => 
     };
   }
 
-  // Crear archivo del template
   const templateFileContent = `export const ${templateVarName} = ${JSON.stringify(templateContent)};\n`;
   
-  // Actualizar prompts.ts
   const newPromptEntry = `  {\n    name: ${JSON.stringify(name)},\n    description: ${JSON.stringify(description)}\n  }`;
   const updatedPromptsContent = promptsFileContent.replace(
     /(\];)/,
     `,\n${newPromptEntry}\n$1`
   );
 
-  // Actualizar templates/index.ts
   const importStatement = `import { ${templateVarName} } from './${name}.template.js';`;
   let updatedTemplatesIndex = templatesIndexContent
     .replace(
@@ -93,7 +87,6 @@ const guardarPromptToolImpl = async (request: CallToolRequest, context: any) => 
       `,\n  ${JSON.stringify(name)}: ${templateVarName}$1`
     );
 
-  // Escribir archivos con manejo de errores y rollback
   try {
     fs.writeFileSync(templateFilePath, templateFileContent, "utf-8");
     
@@ -103,24 +96,20 @@ const guardarPromptToolImpl = async (request: CallToolRequest, context: any) => 
       try {
         fs.writeFileSync(templatesIndexPath, updatedTemplatesIndex, "utf-8");
         
-        // Actualizar caché en memoria
         prompts.push({ name, description });
         (templates as Record<string, string>)[name] = templateContent;
         
-        // Forzar recarga de módulos si la función está disponible
         if (global.__forcePromptReload) {
           global.__forcePromptReload();
         }
         
       } catch (err) {
-        // Rollback: restaurar prompts.ts
         fs.writeFileSync(promptsFilePath, promptsFileContent, "utf-8");
         fs.unlinkSync(templateFilePath);
         throw err;
       }
     } catch (err) {
-      // Rollback: eliminar archivo template
-      try { fs.unlinkSync(templateFilePath); } catch { /* ignorar */ }
+      try { fs.unlinkSync(templateFilePath); } catch {}
       throw err;
     }
   } catch (err) {
