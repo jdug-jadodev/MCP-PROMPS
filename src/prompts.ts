@@ -42,10 +42,9 @@ export const prompts = [
   {
     name: "solucion-en-one_spec",
     description: "Proporciona una solución completa y detallada usando el ONE_SPEC.md como guía para su futura ejecución"
-  }
-,
+  },
   {
-    name: "commit-automatico-ia",
-    description: "Genera commits automáticos con mensajes contextuales basados en análisis de cambios Git. NUNCA hace push."
+    name: "correccion-test-unitarios",
+    description: "Analiza los test unitarios del proyecto o los que proporciona el usuario y corrige aquellos que estén fallando, proporcionando una explicación detallada de las correcciones realizadas."
   }
 ];
