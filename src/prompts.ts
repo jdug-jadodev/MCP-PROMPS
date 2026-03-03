@@ -46,5 +46,9 @@ export const prompts = [
   {
     name: "correccion-test-unitarios",
     description: "Analiza los test unitarios del proyecto o los que proporciona el usuario y corrige aquellos que estén fallando, proporcionando una explicación detallada de las correcciones realizadas."
+  },
+  {
+    name: "probador-flujos-completos",
+    description: "🧪 Analiza estáticamente el flujo completo de un servicio indicado por el usuario (controller HTTP, consumer de cola, handler de evento). Detecta errores, riesgos de seguridad, cuellos de botella y genera un plan de pruebas detallado sin ejecutar ningún código."
   }
 ];

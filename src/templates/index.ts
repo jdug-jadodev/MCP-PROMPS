@@ -12,6 +12,7 @@ import { limpiarOneSpecTemplate } from './limpiar-one-spec.template.js';
 import { refactorizacionCodigoTemplate } from './refactorizacion-codigo.template.js';
 import { solucionEnOneTemplate } from './solucion-en-one_spec.js';
 import { correccionTestUnitariosTemplate } from './correccion-test-unitarios.js';
+import { probadorFlujosCompletosTemplate } from './probador-flujos-completos.template.js';
 
 export const templates = {
   'explicador-codigo-mcp': explicadorCodigoTemplate,
@@ -25,4 +26,5 @@ export const templates = {
   "refactorizacion-codigo": refactorizacionCodigoTemplate,
   "solucion-en-one_spec": solucionEnOneTemplate,
   "correccion-test-unitarios": correccionTestUnitariosTemplate,
+  "probador-flujos-completos": probadorFlujosCompletosTemplate,
 };
