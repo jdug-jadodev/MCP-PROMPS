@@ -54,5 +54,9 @@ export const prompts = [
   {
     name: "generador-commit-automatico",
     description: "🤖 Genera un commit automático con un mensaje contextual basado en el análisis de los cambios realizados en el proyecto, para eso analiza el archivo #cambios-registro.md. NUNCA hagas push, solo genera el commit localmente."
+  },
+  {
+    name: "crear-script-registro-commit",
+    description: "Crea un script para monitorear cambios en el proyecto y registrar esos cambios en un archivo de texto, este script es para uso local y no debe afectar el repositorio remoto por ende se debe agregar a .gitignore"
   }
 ];
