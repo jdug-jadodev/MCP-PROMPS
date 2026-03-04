@@ -11,6 +11,7 @@ import { solucionEnOneTemplate } from './solucion-en-one_spec.js';
 import { correccionTestUnitariosTemplate } from './correccion-test-unitarios.js';
 import { probadorFlujosCompletosTemplate } from './probador-de-flujos.js';
 import { generadorTestUnitariosTemplate } from './generador-test-unitarios.js';
+import { generadorCommitAutomaticoTemplate } from './generador-commit-automatico.js';
 
 export const templates = {
   'explicador-codigo-mcp': explicadorCodigoTemplate,
@@ -26,4 +27,5 @@ export const templates = {
   "correccion-test-unitarios": correccionTestUnitariosTemplate,
   "probador-flujos-completos": probadorFlujosCompletosTemplate,
   "generador-test-unitarios": generadorTestUnitariosTemplate,
+  "generador-commit-automatico": generadorCommitAutomaticoTemplate,
 };
