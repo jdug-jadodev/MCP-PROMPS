@@ -50,5 +50,9 @@ export const prompts = [
   {
     name: "probador-flujos-completos",
     description: "🧪 Analiza estáticamente el flujo completo de un servicio indicado por el usuario (controller HTTP, consumer de cola, handler de evento). Detecta errores, riesgos de seguridad, cuellos de botella y genera un plan de pruebas detallado sin ejecutar ningún código."
+  },
+  {
+    name: "generador-commit-automatico",
+    description: "🤖 Genera un commit automático con un mensaje contextual basado en el análisis de los cambios realizados en el proyecto, para eso analiza el archivo #cambios-registro.md. NUNCA hagas push, solo genera el commit localmente."
   }
 ];

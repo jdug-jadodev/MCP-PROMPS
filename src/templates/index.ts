@@ -27,5 +27,5 @@ export const templates = {
   "correccion-test-unitarios": correccionTestUnitariosTemplate,
   "probador-flujos-completos": probadorFlujosCompletosTemplate,
   "generador-test-unitarios": generadorTestUnitariosTemplate,
-  "generador-commit-automatico": generadorCommitAutomaticoTemplate,
+  "generador-commit-automatico": generadorCommitAutomaticoTemplate
 };
