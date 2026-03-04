@@ -4,15 +4,13 @@ import { revisorCodigoTemplate } from './revisor-codigo.template.js';
 import { detectorSeguridadTemplate } from './detector-seguridad.template.js';
 import { analizadorSonarTemplate } from './analizador-sonar.template.js';
 import { generadorSolucionesTemplate } from './generador-soluciones.template.js';
-
 import { analizadorDeTestUnitariosTemplate } from './analizador-de-test-unitarios.template.js';
-
 import { limpiarOneSpecTemplate } from './limpiar-one-spec.template.js';
-
 import { refactorizacionCodigoTemplate } from './refactorizacion-codigo.template.js';
 import { solucionEnOneTemplate } from './solucion-en-one_spec.js';
 import { correccionTestUnitariosTemplate } from './correccion-test-unitarios.js';
 import { probadorFlujosCompletosTemplate } from './probador-de-flujos.js';
+import { generadorTestUnitariosTemplate } from './generador-test-unitarios.js';
 
 export const templates = {
   'explicador-codigo-mcp': explicadorCodigoTemplate,
@@ -27,4 +25,5 @@ export const templates = {
   "solucion-en-one_spec": solucionEnOneTemplate,
   "correccion-test-unitarios": correccionTestUnitariosTemplate,
   "probador-flujos-completos": probadorFlujosCompletosTemplate,
+  "generador-test-unitarios": generadorTestUnitariosTemplate,
 };
