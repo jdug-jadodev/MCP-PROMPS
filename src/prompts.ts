@@ -47,5 +47,9 @@ export const prompts = [
   {
     name: "commit-automatico-ia",
     description: "Genera commits automáticos con mensajes contextuales basados en análisis de cambios Git. NUNCA hace push."
+  },
+  {
+    name: "generador-plan-trabajo",
+    description: "Genera un plan de trabajo detallado dividido por fases y tareas muy pequeñas para que se puedan completar de manera eficiente y organizada, teniendo en cuenta el contexto del proyecto o implementación desde cero."
   }
 ];

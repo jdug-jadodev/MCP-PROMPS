@@ -12,6 +12,7 @@ import { limpiarOneSpecTemplate } from './limpiar-one-spec.template.js';
 import { refactorizacionCodigoTemplate } from './refactorizacion-codigo.template.js';
 import { solucionEnOneTemplate } from './solucion-en-one_spec.js';
 import { commitAutomaticoIaTemplate } from './commit-automatico-ia.template.js';
+import { generadorPlanTrabajo } from './generador-plan-trabajo.js';
 
 export const templates = {
   'explicador-codigo-mcp': explicadorCodigoTemplate,
@@ -24,5 +25,6 @@ export const templates = {
   "limpiar-one-spec": limpiarOneSpecTemplate,
   "refactorizacion-codigo": refactorizacionCodigoTemplate,
   "solucion-en-one_spec": solucionEnOneTemplate,
-  "commit-automatico-ia": commitAutomaticoIaTemplate
+  "commit-automatico-ia": commitAutomaticoIaTemplate,
+  "generador-plan-trabajo": generadorPlanTrabajo
 };
