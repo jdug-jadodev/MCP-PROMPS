@@ -13,7 +13,7 @@ Crea un archivo ONE_SPEC.md con:
 ## Alcance / No alcance
 
 ## Definiciones (lenguaje de dominio)
-
+ 
 ## Principios / Reglas no negociables
 
 ## Límites
@@ -24,4 +24,5 @@ Crea un archivo ONE_SPEC.md con:
 
 ## Trazabilidad
 
-**IMPORTANTE:** Crea el archivo "ONE_SPEC.md" en la raíz del proyecto con la solución detallada.`;
+**IMPORTANTE:** Crea el archivo "ONE_SPEC.md" en la raíz del proyecto con la solución detallada.
+`;

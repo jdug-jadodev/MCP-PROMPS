@@ -1,1 +1,0 @@
-export const commitAutomaticoIaTemplate = `Ejecuta un flujo rápido de commit: 1) llama quick-commit:get_changes; 2) genera un mensaje Conventional Commits con base en el resumen; 3) llama quick-commit:commit con ese mensaje. Si el resumen está vacío, detente y avísame`;

@@ -4,15 +4,15 @@ import { revisorCodigoTemplate } from './revisor-codigo.template.js';
 import { detectorSeguridadTemplate } from './detector-seguridad.template.js';
 import { analizadorSonarTemplate } from './analizador-sonar.template.js';
 import { generadorSolucionesTemplate } from './generador-soluciones.template.js';
-
 import { analizadorDeTestUnitariosTemplate } from './analizador-de-test-unitarios.template.js';
-
 import { limpiarOneSpecTemplate } from './limpiar-one-spec.template.js';
-
 import { refactorizacionCodigoTemplate } from './refactorizacion-codigo.template.js';
 import { solucionEnOneTemplate } from './solucion-en-one_spec.js';
-import { commitAutomaticoIaTemplate } from './commit-automatico-ia.template.js';
-import { generadorPlanTrabajo } from './generador-plan-trabajo.js';
+import { correccionTestUnitariosTemplate } from './correccion-test-unitarios.js';
+import { probadorFlujosCompletosTemplate } from './probador-de-flujos.js';
+import { generadorTestUnitariosTemplate } from './generador-test-unitarios.js';
+import { generadorCommitAutomaticoTemplate } from './generador-commit-automatico.js';
+import { generadorScriptRegistroCommitTemplate } from './crear-script-registro-commit.js';
 
 export const templates = {
   'explicador-codigo-mcp': explicadorCodigoTemplate,
@@ -25,6 +25,9 @@ export const templates = {
   "limpiar-one-spec": limpiarOneSpecTemplate,
   "refactorizacion-codigo": refactorizacionCodigoTemplate,
   "solucion-en-one_spec": solucionEnOneTemplate,
-  "commit-automatico-ia": commitAutomaticoIaTemplate,
-  "generador-plan-trabajo": generadorPlanTrabajo
+  "correccion-test-unitarios": correccionTestUnitariosTemplate,
+  "probador-flujos-completos": probadorFlujosCompletosTemplate,
+  "generador-test-unitarios": generadorTestUnitariosTemplate,
+  "generador-commit-automatico": generadorCommitAutomaticoTemplate,
+  "crear-script-registro-commit": generadorScriptRegistroCommitTemplate
 };
