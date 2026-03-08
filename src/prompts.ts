@@ -58,5 +58,8 @@ export const prompts = [
   {
     name: "crear-script-registro-commit",
     description: "Crea un script para monitorear cambios en el proyecto y registrar esos cambios en un archivo de texto, este script es para uso local y no debe afectar el repositorio remoto por ende se debe agregar a .gitignore"
-  }
+  },
+  {
+    name: "generador-plan-trabajo",
+    description: "Genera un plan de trabajo detallado dividido por fases y tareas muy pequeñas para que se puedan completar de manera eficiente y organizada, basado en el problema o caso que te dará el usuario, teniendo en cuenta el contexto de clases, métodos, o servicios que ya tiene implementados, o por otra parte si es una implementación desde cero analizando el proyecto para seguir la estructura o definir una desde cero."}
 ];
