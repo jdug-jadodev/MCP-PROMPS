@@ -14,6 +14,7 @@ import { generadorTestUnitariosTemplate } from './generador-test-unitarios.js';
 import { generadorCommitAutomaticoTemplate } from './generador-commit-automatico.js';
 import { generadorScriptRegistroCommitTemplate } from './crear-script-registro-commit.js';
 import { generadorPlanTrabajo } from './generador-plan-trabajo.js';
+import { generadorIndiceProyectoTemplate } from './indice-proyecto.js';
 
 export const templates = {
   'explicador-codigo-mcp': explicadorCodigoTemplate,
@@ -32,4 +33,5 @@ export const templates = {
   "generador-commit-automatico": generadorCommitAutomaticoTemplate,
   "crear-script-registro-commit": generadorScriptRegistroCommitTemplate,
   "generador-plan-trabajo": generadorPlanTrabajo,
+  "generador-indice-proyecto": generadorIndiceProyectoTemplate
 };

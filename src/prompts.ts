@@ -61,5 +61,10 @@ export const prompts = [
   },
   {
     name: "generador-plan-trabajo",
-    description: "Genera un plan de trabajo detallado dividido por fases y tareas muy pequeñas para que se puedan completar de manera eficiente y organizada, basado en el problema o caso que te dará el usuario, teniendo en cuenta el contexto de clases, métodos, o servicios que ya tiene implementados, o por otra parte si es una implementación desde cero analizando el proyecto para seguir la estructura o definir una desde cero."}
+    description: "Genera un plan de trabajo detallado dividido por fases y tareas muy pequeñas para que se puedan completar de manera eficiente y organizada, basado en el problema o caso que te dará el usuario, teniendo en cuenta el contexto de clases, métodos, o servicios que ya tiene implementados, o por otra parte si es una implementación desde cero analizando el proyecto para seguir la estructura o definir una desde cero."
+  },
+  {
+    name: "generador-indice-proyecto",
+    description: "Genera un índice del proyecto en un archivo .md planteando las cosas importantes que usamos y su ubicación, que sea como un índice de dónde podemos encontrar las cosas de una manera más fácil y lo que hemos implementado."
+  }
 ];
