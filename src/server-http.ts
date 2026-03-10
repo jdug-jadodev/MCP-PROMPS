@@ -1,7 +1,5 @@
 import express, { Request, Response } from 'express';
-import { prompts } from './prompts';
 import { tools } from './tools';
-import { templates } from './templates';
 import path from 'path';
 import fs from 'fs';
 

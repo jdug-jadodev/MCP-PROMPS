@@ -6,6 +6,7 @@
     "build": "tsc",
     "start": "node dist/server-http.js",
     "start:http": "node dist/server-http.js",
+    "keepalive": "node src/scripts/keepalive.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
