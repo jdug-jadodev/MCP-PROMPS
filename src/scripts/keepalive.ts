@@ -6,13 +6,12 @@ async function ping() {
   try {
     const res = await fetch(url, { method: 'GET' });
     console.log(new Date().toISOString(), 'KEEPALIVE', url, 'status=', res.status);
-  } catch (err) {
+  } catch (err: any) {
     console.error(new Date().toISOString(), 'KEEPALIVE ERROR', err && err.message ? err.message : err);
   }
 }
 
 ping();
-
 setInterval(ping, intervalMs);
 
-process.stdin.resume();
+export {};

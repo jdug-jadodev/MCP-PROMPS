@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import './scripts/keepalive';
 import { tools } from './tools';
 import path from 'path';
 import fs from 'fs';
