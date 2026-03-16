@@ -3,7 +3,10 @@ import jwt from 'jsonwebtoken';
 import { AuthenticatedRequest, JWTPayload } from '../types/auth.types';
 
 /**
- * Middleware de autenticación para MCP Server con soporte OAuth
+ * Middleware de autenticación CONDICIONAL para MCP Server
+ * 
+ * - `initialize` y `notifications/initialized` → NO requieren auth (conexión inicial)
+ * - Todos los otros métodos → SÍ requieren auth
  * 
  * Cuando falla la autenticación, incluye el header WWW-Authenticate
  * para que VS Code sepa que debe iniciar el flujo OAuth
@@ -14,10 +17,22 @@ export const authenticateToken = (
   next: NextFunction
 ): void => {
   try {
-    const authHeader = req.headers.authorization;
+    // Extraer el método JSON-RPC del body
+    const method = req.body?.method;
     
     console.log(`🔐 Auth Middleware: Verificando autenticación`);
     console.log(`  📋 Path: ${req.path}`);
+    console.log(`  📋 Método JSON-RPC: ${method}`);
+    
+    // MÉTODOS QUE NO REQUIEREN AUTENTICACIÓN
+    // Permitir conexión inicial sin token
+    if (method === 'initialize' || method === 'notifications/initialized') {
+      console.log(`✅ Auth Middleware: Método ${method} permitido sin autenticación`);
+      return next();
+    }
+    
+    // Para todos los otros métodos, validar token
+    const authHeader = req.headers.authorization;
     console.log(`  📋 Authorization header: ${authHeader ? 'presente' : 'ausente'}`);
     
     if (!authHeader) {
@@ -32,7 +47,8 @@ export const authenticateToken = (
       res.status(401).json({ 
         status: 'error', 
         code: 'NO_TOKEN', 
-        message: 'No se proporcionó token de autenticación' 
+        message: 'No se proporcionó token de autenticación',
+        login_url: 'https://front-mcp-gules.vercel.app/login'
       });
       return;
     }
@@ -47,7 +63,8 @@ export const authenticateToken = (
       res.status(401).json({ 
         status: 'error', 
         code: 'INVALID_TOKEN_FORMAT', 
-        message: 'Formato de token inválido. Use: Bearer <token>' 
+        message: 'Formato de token inválido. Use: Bearer <token>',
+        login_url: 'https://front-mcp-gules.vercel.app/login'
       });
       return;
     }
@@ -79,7 +96,8 @@ export const authenticateToken = (
       res.status(401).json({ 
         status: 'error', 
         code: 'TOKEN_EXPIRED', 
-        message: 'El token ha expirado' 
+        message: 'El token ha expirado',
+        login_url: 'https://front-mcp-gules.vercel.app/login'
       });
       return;
     }
@@ -92,7 +110,8 @@ export const authenticateToken = (
       res.status(401).json({ 
         status: 'error', 
         code: 'INVALID_TOKEN', 
-        message: 'Token inválido' 
+        message: 'Token inválido',
+        login_url: 'https://front-mcp-gules.vercel.app/login'
       });
       return;
     }

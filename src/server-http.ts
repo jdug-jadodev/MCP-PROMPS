@@ -87,7 +87,11 @@ app.post('/mcp', authenticateToken, async (req: AuthenticatedRequest, res: Respo
   const message = req.body;
   
   console.log('📨 Mensaje MCP recibido:', message.method);
-  console.log('🔒 Usuario autenticado:', req.user?.email ?? req.user?.userId);
+  if (req.user) {
+    console.log('🔒 Usuario autenticado:', req.user?.email ?? req.user?.userId);
+  } else {
+    console.log('👤 Usuario: Sin autenticar (método:', message.method, ')');
+  }
 
   try {
     let response: any;
