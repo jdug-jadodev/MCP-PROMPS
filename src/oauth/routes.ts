@@ -168,12 +168,32 @@ router.get('/authorize', (req: Request, res: Response) => {
     client = oauthStorage.getDynamicClient(client_id as string) as OAuthClient;
   }
   if (!client) {
-    console.error(`❌ OAuth: Cliente no registrado: ${client_id}`);
-    console.error(`❌ OAuth: Clientes registrados disponibles:`, Object.keys(registeredClients));
-    return res.status(400).json({ 
-      error: 'invalid_client', 
-      message: 'Cliente no registrado' 
-    });
+    // Auto-register client si el redirect_uri es de localhost (VS Code tras reinicio del servidor)
+    const redirectUriStr = redirect_uri as string;
+    const isLocalhostRedirect = redirectUriStr && (
+      redirectUriStr.startsWith('http://127.0.0.1:') ||
+      redirectUriStr.startsWith('http://localhost:')
+    );
+    if (isLocalhostRedirect) {
+      client = {
+        clientId: client_id as string,
+        name: 'Auto-registered Client',
+        redirectUris: ['http://127.0.0.1:*', 'http://localhost:*'],
+        isPublic: true,
+        requiresPKCE: false,
+        allowedScopes: ['mcp:read', 'mcp:write']
+      };
+      registeredClients[client_id as string] = client;
+      oauthStorage.saveDynamicClient(client_id as string, client);
+      console.log(`⚠️ OAuth: Cliente auto-registrado (reinicio servidor): ${client_id}`);
+    } else {
+      console.error(`❌ OAuth: Cliente no registrado: ${client_id}`);
+      console.error(`❌ OAuth: Clientes registrados disponibles:`, Object.keys(registeredClients));
+      return res.status(400).json({ 
+        error: 'invalid_client', 
+        message: 'Cliente no registrado' 
+      });
+    }
   }
 
   // 2. Validar redirect_uri
