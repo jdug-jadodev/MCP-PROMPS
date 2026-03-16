@@ -4,7 +4,7 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuid } from 'uuid';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { oauthConfig, registeredClients } from './config';
+import { oauthConfig, registeredClients, OAuthClient } from './config';
 import { oauthStorage } from './storage';
 import express from 'express';
 
@@ -20,21 +20,22 @@ console.log('🔧 OAuth: Inicializando router OAuth...');
  * protects this MCP resource before initiating the OAuth flow.
  */
 router.get('/.well-known/oauth-protected-resource', (req: Request, res: Response) => {
-  const baseUrl = oauthConfig.issuer || `https://${req.headers.host}`;
+  const baseUrl = (oauthConfig.issuer || `https://${req.headers.host}`).replace(/\/$/, '');
   
   console.log(`📋 OAuth: Protected Resource Metadata solicitado desde ${req.ip}`);
   
+  // resource MUST match the MCP endpoint URL per RFC 9728
   res.json({
-    resource: baseUrl,
+    resource: `${baseUrl}/mcp`,
     authorization_servers: [baseUrl],
     bearer_methods_supported: ['header'],
     scopes_supported: ['mcp:read', 'mcp:write']
   });
 });
 
-// Also handle the path-suffixed variant (RFC 9728 allows /resource-path suffix)
+// Path-suffixed variant per RFC 9728
 router.get('/.well-known/oauth-protected-resource/mcp', (req: Request, res: Response) => {
-  const baseUrl = oauthConfig.issuer || `https://${req.headers.host}`;
+  const baseUrl = (oauthConfig.issuer || `https://${req.headers.host}`).replace(/\/$/, '');
   
   console.log(`📋 OAuth: Protected Resource Metadata (path-suffixed) solicitado desde ${req.ip}`);
   
@@ -66,41 +67,15 @@ router.get('/.well-known/oauth-authorization-server', (req: Request, res: Respon
   console.log(`  🔗 Token endpoint: ${baseUrl}/token`);
   
   const metadata = {
-    // Identificador del Authorization Server
     issuer: baseUrl,
-    
-    // Endpoint de autorización (donde inicia el flujo OAuth)
     authorization_endpoint: `${baseUrl}/authorize`,
-    
-    // Endpoint para intercambiar código por token
     token_endpoint: `${baseUrl}/token`,
-    
-    // Tipos de respuesta soportados
+    registration_endpoint: `${baseUrl}/oauth/register`,
     response_types_supported: ['code'],
-    
-    // Grant types soportados
-    grant_types_supported: [
-      'authorization_code',
-      'refresh_token'
-    ],
-    
-    // Métodos de autenticación de cliente soportados
-    token_endpoint_auth_methods_supported: [
-      'none',                    // Clientes públicos (VS Code, IntelliJ)
-      'client_secret_post'       // Futuro: clientes confidenciales
-    ],
-    
-    // Métodos PKCE soportados (requerido para clientes públicos)
+    grant_types_supported: ['authorization_code', 'refresh_token'],
+    token_endpoint_auth_methods_supported: ['none', 'client_secret_post'],
     code_challenge_methods_supported: ['S256', 'plain'],
-    
-    // Scopes soportados (opcional, para futuro)
-    scopes_supported: ['mcp:read', 'mcp:write'],
-    
-    // Service documentation (opcional)
-    service_documentation: `${baseUrl}/docs/oauth`,
-    
-    // UI locales soportados (opcional)
-    ui_locales_supported: ['es-ES', 'en-US']
+    scopes_supported: ['mcp:read', 'mcp:write']
   };
 
   console.log(`📋 OAuth: Metadata solicitado desde ${req.ip}`);
@@ -109,6 +84,52 @@ router.get('/.well-known/oauth-authorization-server', (req: Request, res: Respon
 });
 
 console.log('✅ OAuth: Ruta /.well-known/oauth-authorization-server registrada');
+
+/**
+ * POST /oauth/register - Dynamic Client Registration (RFC 7591)
+ * 
+ * VS Code calls this automatically to register its client before starting OAuth.
+ * We accept any registration and create a dynamic client entry.
+ */
+router.post('/oauth/register', express.json(), (req: Request, res: Response) => {
+  const { client_name, redirect_uris, grant_types, token_endpoint_auth_method, scope } = req.body;
+
+  console.log(`🔐 OAuth /oauth/register: DCR request`);
+  console.log(`  📋 client_name: ${client_name}`);
+  console.log(`  📋 redirect_uris: ${JSON.stringify(redirect_uris)}`);
+  console.log(`  📋 grant_types: ${JSON.stringify(grant_types)}`);
+
+  // Generate a unique client_id for this registration
+  const clientId = uuid();
+
+  // Store the dynamically registered client
+  const newClient: OAuthClient = {
+    clientId,
+    name: client_name || 'Dynamic Client',
+    redirectUris: redirect_uris || ['http://127.0.0.1:*', 'http://localhost:*'],
+    isPublic: true,
+    requiresPKCE: false, // Don't enforce PKCE requirement for dynamic clients - VS Code sends it anyway
+    allowedScopes: ['mcp:read', 'mcp:write']
+  };
+
+  // Add to registered clients map
+  registeredClients[clientId] = newClient;
+  oauthStorage.saveDynamicClient(clientId, newClient);
+
+  console.log(`✅ OAuth: Cliente registrado dinámicamente: ${clientId} (${client_name})`);
+
+  // Respond per RFC 7591
+  res.status(201).json({
+    client_id: clientId,
+    client_name: client_name || 'Dynamic Client',
+    redirect_uris: redirect_uris || ['http://127.0.0.1:*', 'http://localhost:*'],
+    grant_types: grant_types || ['authorization_code', 'refresh_token'],
+    token_endpoint_auth_method: token_endpoint_auth_method || 'none',
+    scope: scope || 'mcp:read mcp:write'
+  });
+});
+
+console.log('✅ OAuth: Ruta /oauth/register (DCR) registrada');
 
 /**
  * GET /authorize - Inicia flujo OAuth
@@ -136,8 +157,12 @@ router.get('/authorize', (req: Request, res: Response) => {
   console.log(`  📋 code_challenge: ${code_challenge ? 'presente' : 'ausente'}`);
   console.log(`  📋 code_challenge_method: ${code_challenge_method}`);
 
-  // 1. Validar client_id
-  const client = registeredClients[client_id as string];
+  // 1. Validate client_id - check static and dynamic clients
+  let client = registeredClients[client_id as string];
+  if (!client) {
+    // Also check dynamic clients from storage
+    client = oauthStorage.getDynamicClient(client_id as string) as OAuthClient;
+  }
   if (!client) {
     console.error(`❌ OAuth: Cliente no registrado: ${client_id}`);
     console.error(`❌ OAuth: Clientes registrados disponibles:`, Object.keys(registeredClients));
@@ -147,14 +172,16 @@ router.get('/authorize', (req: Request, res: Response) => {
     });
   }
 
-  // 2. Validar redirect_uri (debe coincidir con patrón registrado)
-  const isValidRedirectUri = validateRedirectUri(redirect_uri as string, client.redirectUris);
-  if (!isValidRedirectUri) {
-    console.error(`❌ OAuth: redirect_uri inválido: ${redirect_uri}`);
-    return res.status(400).json({ 
-      error: 'invalid_redirect_uri',
-      message: 'Redirect URI no permitido para este cliente'
-    });
+  // 2. Validar redirect_uri
+  if (redirect_uri) {
+    const isValidRedirectUri = validateRedirectUri(redirect_uri as string, client.redirectUris);
+    if (!isValidRedirectUri) {
+      console.error(`❌ OAuth: redirect_uri inválido: ${redirect_uri}`);
+      return res.status(400).json({ 
+        error: 'invalid_redirect_uri',
+        message: 'Redirect URI no permitido para este cliente'
+      });
+    }
   }
 
   // 3. Validar response_type
@@ -166,16 +193,7 @@ router.get('/authorize', (req: Request, res: Response) => {
     });
   }
 
-  // 4. Validar PKCE (requerido para clientes públicos)
-  if (client.requiresPKCE && !code_challenge) {
-    console.error(`❌ OAuth: PKCE requerido pero no provisto`);
-    return res.status(400).json({ 
-      error: 'invalid_request',
-      message: 'PKCE es requerido para este cliente (falta code_challenge)'
-    });
-  }
-
-  // 5. Guardar solicitud OAuth en memoria (expira en 10 min)
+  // 4. Guardar solicitud OAuth en memoria (expira en 10 min)
   const oauthRequestId = uuid();
   const expiresAt = Date.now() + oauthConfig.authRequestLifetime * 1000;
   
@@ -189,7 +207,7 @@ router.get('/authorize', (req: Request, res: Response) => {
     expiresAt
   });
 
-  // 6. Redirigir a frontend de login con oauth_request parameter
+  // 5. Redirigir a frontend de login con oauth_request parameter
   const loginRedirectUrl = `${oauthConfig.frontendLoginUrl}?oauth_request=${oauthRequestId}`;
   
   console.log(`✅ OAuth: Redirigiendo a login...`);

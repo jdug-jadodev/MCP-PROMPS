@@ -57,6 +57,18 @@ class OAuthStorage {
   private authRequests: Map<string, AuthRequest> = new Map();
   private authorizationCodes: Map<string, AuthorizationCode> = new Map();
   private refreshTokens: Map<string, RefreshTokenData> = new Map();
+  private dynamicClients: Map<string, any> = new Map();
+
+  // ===== DYNAMIC CLIENTS =====
+  
+  saveDynamicClient(clientId: string, data: any): void {
+    this.dynamicClients.set(clientId, data);
+    console.log(`💾 OAuth: Dynamic client guardado: ${clientId}`);
+  }
+
+  getDynamicClient(clientId: string): any | undefined {
+    return this.dynamicClients.get(clientId);
+  }
 
   // ===== AUTH REQUESTS =====
   
