@@ -31,8 +31,11 @@ Thumbs.db
 *.sln
 *.sw?
 
-# Archivos generados por el análisis
-informe-exploracion.md
 
 monitor.js
 cambios-registro.md
+
+# Local env and logs
+.env
+.env.example
+*.log

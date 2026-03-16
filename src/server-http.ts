@@ -1,11 +1,21 @@
 import express, { Request, Response } from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
 import './scripts/keepalive';
 import { tools } from './tools';
 import path from 'path';
 import fs from 'fs';
 
+import { authenticateToken } from './middleware/auth.middleware';
+import { errorHandler, notFoundHandler } from './middleware/error.middleware';
+import { AuthenticatedRequest } from './types/auth.types';
+
+dotenv.config();
+
 const app = express();
+app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173', credentials: true }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 let promptsCache: any[] = [];
 let templatesCache: Record<string, string> = {};
@@ -51,10 +61,11 @@ const fillTemplate = (template: any, args: any) => {
   });
 };
 
-app.post('/mcp', async (req: Request, res: Response) => {
+app.post('/mcp', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   const message = req.body;
   
   console.log('📨 Mensaje MCP recibido:', message.method);
+  console.log('🔒 Usuario autenticado:', req.user?.email ?? req.user?.userId);
 
   try {
     let response: any;
@@ -211,10 +222,16 @@ app.post('/mcp', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/health', (_req: Request, res: Response) => res.send('OK'));
+app.get('/health', (_req: Request, res: Response) => res.json({ status: 'healthy', service: 'MCP Prompts Server', timestamp: new Date().toISOString(), authentication: 'enabled' }));
+
+// Middlewares de error (deben ir al final)
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`🚀 MCP Prompts Server HTTP listening on port ${port}`);
   console.log(`📡 Endpoint MCP: http://localhost:${port}/mcp`);
+  console.log(`🔐 Authentication: ENABLED`);
+  console.log(`🌐 CORS Origin: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`);
 });
