@@ -3,10 +3,10 @@ import jwt from 'jsonwebtoken';
 import { AuthenticatedRequest, JWTPayload } from '../types/auth.types';
 
 /**
- * Middleware de autenticación CONDICIONAL para MCP Server
+ * Middleware de autenticación para MCP Server con soporte OAuth
  * 
- * - `initialize` y `notifications/initialized` → NO requieren auth (conexión inicial)
- * - Todos los otros métodos → SÍ requieren auth
+ * TODOS los métodos requieren autenticación, incluyendo initialize.
+ * Esto es necesario para que VS Code detecte que necesita OAuth y lo inicie.
  * 
  * Cuando falla la autenticación, incluye el header WWW-Authenticate
  * para que VS Code sepa que debe iniciar el flujo OAuth
@@ -17,22 +17,12 @@ export const authenticateToken = (
   next: NextFunction
 ): void => {
   try {
-    // Extraer el método JSON-RPC del body
     const method = req.body?.method;
+    const authHeader = req.headers.authorization;
     
     console.log(`🔐 Auth Middleware: Verificando autenticación`);
     console.log(`  📋 Path: ${req.path}`);
     console.log(`  📋 Método JSON-RPC: ${method}`);
-    
-    // MÉTODOS QUE NO REQUIEREN AUTENTICACIÓN
-    // Permitir conexión inicial sin token
-    if (method === 'initialize' || method === 'notifications/initialized') {
-      console.log(`✅ Auth Middleware: Método ${method} permitido sin autenticación`);
-      return next();
-    }
-    
-    // Para todos los otros métodos, validar token
-    const authHeader = req.headers.authorization;
     console.log(`  📋 Authorization header: ${authHeader ? 'presente' : 'ausente'}`);
     
     if (!authHeader) {
@@ -45,10 +35,15 @@ export const authenticateToken = (
         `Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`
       );
       res.status(401).json({ 
-        status: 'error', 
-        code: 'NO_TOKEN', 
-        message: 'No se proporcionó token de autenticación',
-        login_url: 'https://front-mcp-gules.vercel.app/login'
+        jsonrpc: '2.0',
+        id: req.body?.id || null,
+        error: {
+          code: -32001,
+          message: 'Autenticación requerida',
+          data: {
+            login_url: 'https://front-mcp-gules.vercel.app/login'
+          }
+        }
       });
       return;
     }
@@ -61,10 +56,12 @@ export const authenticateToken = (
         `Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource", error="invalid_token"`
       );
       res.status(401).json({ 
-        status: 'error', 
-        code: 'INVALID_TOKEN_FORMAT', 
-        message: 'Formato de token inválido. Use: Bearer <token>',
-        login_url: 'https://front-mcp-gules.vercel.app/login'
+        jsonrpc: '2.0',
+        id: req.body?.id || null,
+        error: {
+          code: -32001,
+          message: 'Formato de token inválido'
+        }
       });
       return;
     }
@@ -74,9 +71,12 @@ export const authenticateToken = (
     if (!JWT_SECRET) {
       console.error('JWT_SECRET no está configurado');
       res.status(500).json({ 
-        status: 'error', 
-        code: 'SERVER_CONFIG_ERROR', 
-        message: 'Error de configuración del servidor' 
+        jsonrpc: '2.0',
+        id: req.body?.id || null,
+        error: {
+          code: -32603,
+          message: 'Error de configuración del servidor'
+        }
       });
       return;
     }
@@ -94,10 +94,15 @@ export const authenticateToken = (
         `Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource", error="invalid_token"`
       );
       res.status(401).json({ 
-        status: 'error', 
-        code: 'TOKEN_EXPIRED', 
-        message: 'El token ha expirado',
-        login_url: 'https://front-mcp-gules.vercel.app/login'
+        jsonrpc: '2.0',
+        id: req.body?.id || null,
+        error: {
+          code: -32001,
+          message: 'El token ha expirado',
+          data: {
+            login_url: 'https://front-mcp-gules.vercel.app/login'
+          }
+        }
       });
       return;
     }
@@ -108,18 +113,26 @@ export const authenticateToken = (
         `Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource", error="invalid_token"`
       );
       res.status(401).json({ 
-        status: 'error', 
-        code: 'INVALID_TOKEN', 
-        message: 'Token inválido',
-        login_url: 'https://front-mcp-gules.vercel.app/login'
+        jsonrpc: '2.0',
+        id: req.body?.id || null,
+        error: {
+          code: -32001,
+          message: 'Token inválido',
+          data: {
+            login_url: 'https://front-mcp-gules.vercel.app/login'
+          }
+        }
       });
       return;
     }
     console.error('Error validando token:', error);
     res.status(500).json({ 
-      status: 'error', 
-      code: 'INTERNAL_ERROR', 
-      message: 'Error al validar token' 
+      jsonrpc: '2.0',
+      id: req.body?.id || null,
+      error: {
+        code: -32603,
+        message: 'Error al validar token'
+      }
     });
   }
 };
