@@ -249,7 +249,9 @@ console.log('✅ OAuth: Ruta /authorize registrada');
  * Generamos authorization_code y respondemos con redirect_uri para VS Code/IntelliJ
  */
 router.post('/oauth/callback', express.json(), async (req: Request, res: Response) => {
-  const { oauth_request, token } = req.body;
+  // El frontend puede enviar el JWT bajo el campo 'jwt' o 'token'
+  const { oauth_request, jwt: jwtToken, token } = req.body;
+  const userToken = jwtToken || token;
 
   console.log(`🔐 OAuth /callback: Procesando oauth_request ${oauth_request}`);
 
@@ -275,7 +277,7 @@ router.post('/oauth/callback', express.json(), async (req: Request, res: Respons
 
   // 3. Validar el JWT del usuario (usando JWT_SECRET existente)
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string; email: string };
+    const decoded = jwt.verify(userToken, process.env.JWT_SECRET!) as { userId: string; email: string };
     
     console.log(`✅ OAuth: JWT validado para usuario ${decoded.email}`);
     
@@ -311,10 +313,10 @@ router.post('/oauth/callback', express.json(), async (req: Request, res: Respons
     console.log(`✅ OAuth: Código generado para usuario ${decoded.email}`);
     console.log(`  🔗 Redirigiendo a: ${redirectUrl.toString()}`);
 
-    // 8. Responder al frontend con la URL de redirección
-    res.json({ 
-      success: true,
-      redirect_uri: redirectUrl.toString()
+    // 8. Responder al frontend con la URL de redirección (formato esperado por el frontend)
+    res.json({
+      status: 'success',
+      redirectUrl: redirectUrl.toString()
     });
 
   } catch (error) {
