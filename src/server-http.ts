@@ -232,7 +232,7 @@ app.get('/health', (_req: Request, res: Response) => res.json({ status: 'healthy
 
 // Middlewares de error (deben ir al final)
 app.use(notFoundHandler);
-app.use(errorHandler);
+app.use(errorHandler);  
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
