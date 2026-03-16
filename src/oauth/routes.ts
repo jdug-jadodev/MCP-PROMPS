@@ -24,6 +24,11 @@ router.get('/.well-known/oauth-authorization-server', (req: Request, res: Respon
   // Construir base URL dinámicamente o usar variable de entorno
   const baseUrl = oauthConfig.issuer || `https://${req.headers.host}`;
   
+  console.log(`📋 OAuth: Metadata solicitado desde ${req.ip}`);
+  console.log(`  🔗 Base URL: ${baseUrl}`);
+  console.log(`  🔗 Authorization endpoint: ${baseUrl}/authorize`);
+  console.log(`  🔗 Token endpoint: ${baseUrl}/token`);
+  
   const metadata = {
     // Identificador del Authorization Server
     issuer: baseUrl,
@@ -86,12 +91,20 @@ router.get('/authorize', (req: Request, res: Response) => {
     scope
   } = req.query;
 
-  console.log(`🔐 OAuth /authorize: Solicitud de ${client_id}`);
+  console.log(`🔐 OAuth /authorize: INICIO del flujo OAuth`);
+  console.log(`  📋 client_id: ${client_id}`);
+  console.log(`  📋 redirect_uri: ${redirect_uri}`);
+  console.log(`  📋 state: ${state}`);
+  console.log(`  📋 response_type: ${response_type}`);
+  console.log(`  📋 scope: ${scope}`);
+  console.log(`  📋 code_challenge: ${code_challenge ? 'presente' : 'ausente'}`);
+  console.log(`  📋 code_challenge_method: ${code_challenge_method}`);
 
   // 1. Validar client_id
   const client = registeredClients[client_id as string];
   if (!client) {
     console.error(`❌ OAuth: Cliente no registrado: ${client_id}`);
+    console.error(`❌ OAuth: Clientes registrados disponibles:`, Object.keys(registeredClients));
     return res.status(400).json({ 
       error: 'invalid_client', 
       message: 'Cliente no registrado' 
@@ -143,7 +156,9 @@ router.get('/authorize', (req: Request, res: Response) => {
   // 6. Redirigir a frontend de login con oauth_request parameter
   const loginRedirectUrl = `${oauthConfig.frontendLoginUrl}?oauth_request=${oauthRequestId}`;
   
-  console.log(`🔐 OAuth: Redirigiendo a login con request ${oauthRequestId}`);
+  console.log(`✅ OAuth: Redirigiendo a login...`);
+  console.log(`  🔗 URL de frontend: ${loginRedirectUrl}`);
+  console.log(`  🔗 Cliente: ${client.name}`);
   res.redirect(loginRedirectUrl);
 });
 
@@ -216,6 +231,7 @@ router.post('/oauth/callback', express.json(), async (req: Request, res: Respons
     }
 
     console.log(`✅ OAuth: Código generado para usuario ${decoded.email}`);
+    console.log(`  🔗 Redirigiendo a: ${redirectUrl.toString()}`);
 
     // 8. Responder al frontend con la URL de redirección
     res.json({ 

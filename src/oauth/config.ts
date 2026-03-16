@@ -46,6 +46,19 @@ export const registeredClients: Record<string, OAuthClient> = {
     isPublic: true,
     requiresPKCE: true,
     allowedScopes: ['mcp:read', 'mcp:write']
+  },
+  
+  // VS Code a veces usa la URL del frontend como client_id cuando no está configurado
+  'https://front-mcp-gules.vercel.app/login': {
+    clientId: 'https://front-mcp-gules.vercel.app/login',
+    name: 'VS Code GitHub Copilot (Frontend URL)',
+    redirectUris: [
+      'http://127.0.0.1:*',
+      'http://localhost:*'
+    ],
+    isPublic: true,
+    requiresPKCE: true,
+    allowedScopes: ['mcp:read', 'mcp:write']
   }
 };
 
