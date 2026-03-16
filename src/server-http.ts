@@ -9,6 +9,7 @@ import fs from 'fs';
 import { authenticateToken } from './middleware/auth.middleware';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import { AuthenticatedRequest } from './types/auth.types';
+import oauthRoutes from './oauth/routes';
 
 dotenv.config();
 
@@ -16,6 +17,11 @@ const app = express();
 app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173', credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// IMPORTANTE: Registrar rutas OAuth ANTES del middleware de autenticación
+// El endpoint /.well-known debe ser público
+app.use(oauthRoutes);
+console.log('🔐 OAuth: Rutas OAuth registradas');
 
 let promptsCache: any[] = [];
 let templatesCache: Record<string, string> = {};
