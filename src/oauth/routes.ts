@@ -168,17 +168,16 @@ router.get('/authorize', (req: Request, res: Response) => {
     client = oauthStorage.getDynamicClient(client_id as string) as OAuthClient;
   }
   if (!client) {
-    // Auto-register: si el redirect_uri es localhost, el cliente fue registrado vía DCR
-    // en una sesión anterior y se perdió por reinicio del servidor. Lo re-registramos.
+    // Auto-register si el redirect_uri es localhost válido (VS Code tras redeploy del servidor)
     const redirectUriStr = redirect_uri as string;
     const isLocalhostRedirect = redirectUriStr && (
       redirectUriStr.startsWith('http://127.0.0.1:') ||
       redirectUriStr.startsWith('http://localhost:')
     );
-    if (isLocalhostRedirect) {
+    if (client_id && isLocalhostRedirect) {
       client = {
         clientId: client_id as string,
-        name: 'Auto-restored Client',
+        name: 'Auto-registered Client',
         redirectUris: ['http://127.0.0.1:*', 'http://localhost:*'],
         isPublic: true,
         requiresPKCE: false,
@@ -186,7 +185,7 @@ router.get('/authorize', (req: Request, res: Response) => {
       };
       registeredClients[client_id as string] = client;
       oauthStorage.saveDynamicClient(client_id as string, client);
-      console.log(`⚠️ OAuth: Cliente auto-restaurado tras reinicio: ${client_id}`);
+      console.log(`⚠️ OAuth: Cliente auto-registrado (redeploy): ${client_id}`);
     } else {
       console.error(`❌ OAuth: Cliente no registrado: ${client_id}`);
       console.error(`❌ OAuth: Clientes registrados disponibles:`, Object.keys(registeredClients));
