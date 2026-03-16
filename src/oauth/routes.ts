@@ -70,8 +70,7 @@ router.get('/.well-known/oauth-authorization-server', (req: Request, res: Respon
     issuer: baseUrl,
     authorization_endpoint: `${baseUrl}/authorize`,
     token_endpoint: `${baseUrl}/token`,
-    // NO incluir registration_endpoint - forzar registro manual
-    // registration_endpoint: `${baseUrl}/oauth/register`,
+    registration_endpoint: `${baseUrl}/oauth/register`,
     response_types_supported: ['code'],
     grant_types_supported: ['authorization_code', 'refresh_token'],
     token_endpoint_auth_methods_supported: ['none', 'client_secret_post'],
@@ -95,10 +94,13 @@ console.log('✅ OAuth: Ruta /.well-known/oauth-authorization-server registrada'
 router.post('/oauth/register', express.json(), (req: Request, res: Response) => {
   const { client_name, redirect_uris, grant_types, token_endpoint_auth_method, scope } = req.body;
 
-  console.log(`🔐 OAuth /oauth/register: DCR request`);
+  console.log(`🔐 OAuth /oauth/register: ===== DCR REQUEST RECIBIDO =====`);
   console.log(`  📋 client_name: ${client_name}`);
   console.log(`  📋 redirect_uris: ${JSON.stringify(redirect_uris)}`);
   console.log(`  📋 grant_types: ${JSON.stringify(grant_types)}`);
+  console.log(`  📋 token_endpoint_auth_method: ${token_endpoint_auth_method}`);
+  console.log(`  📋 scope: ${scope}`);
+  console.log(`  📋 Full body:`, JSON.stringify(req.body, null, 2));
 
   // Generate a unique client_id for this registration
   const clientId = uuid();
@@ -149,7 +151,7 @@ router.get('/authorize', (req: Request, res: Response) => {
     scope
   } = req.query;
 
-  console.log(`🔐 OAuth /authorize: INICIO del flujo OAuth`);
+  console.log(`🔐 OAuth /authorize: ===== FLUJO OAUTH INICIADO =====`);
   console.log(`  📋 client_id: ${client_id}`);
   console.log(`  📋 redirect_uri: ${redirect_uri}`);
   console.log(`  📋 state: ${state}`);
@@ -157,6 +159,7 @@ router.get('/authorize', (req: Request, res: Response) => {
   console.log(`  📋 scope: ${scope}`);
   console.log(`  📋 code_challenge: ${code_challenge ? 'presente' : 'ausente'}`);
   console.log(`  📋 code_challenge_method: ${code_challenge_method}`);
+  console.log(`  📋 Full query:`, JSON.stringify(req.query, null, 2));
 
   // 1. Validate client_id - check static and dynamic clients
   let client = registeredClients[client_id as string];
