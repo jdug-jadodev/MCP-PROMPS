@@ -291,10 +291,10 @@ router.post('/oauth/callback', express.json(), async (req: Request, res: Respons
     console.log(`✅ OAuth: Código generado para usuario ${decoded.email}`);
     console.log(`  🔗 Redirigiendo a: ${redirectUrl.toString()}`);
 
-    // 8. Responder al frontend con la URL de redirección
-    res.json({ 
-      success: true,
-      redirect_uri: redirectUrl.toString()
+    // 8. Responder al frontend con la URL de redirección (formato esperado por el frontend)
+    res.json({
+      status: 'success',
+      redirectUrl: redirectUrl.toString()
     });
 
   } catch (error) {
