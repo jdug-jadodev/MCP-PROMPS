@@ -13,6 +13,42 @@ const router = Router();
 console.log('🔧 OAuth: Inicializando router OAuth...');
 
 /**
+ * GET /.well-known/oauth-protected-resource
+ * 
+ * Protected Resource Metadata per RFC 9728
+ * VS Code/IntelliJ needs this to discover which authorization server
+ * protects this MCP resource before initiating the OAuth flow.
+ */
+router.get('/.well-known/oauth-protected-resource', (req: Request, res: Response) => {
+  const baseUrl = oauthConfig.issuer || `https://${req.headers.host}`;
+  
+  console.log(`📋 OAuth: Protected Resource Metadata solicitado desde ${req.ip}`);
+  
+  res.json({
+    resource: baseUrl,
+    authorization_servers: [baseUrl],
+    bearer_methods_supported: ['header'],
+    scopes_supported: ['mcp:read', 'mcp:write']
+  });
+});
+
+// Also handle the path-suffixed variant (RFC 9728 allows /resource-path suffix)
+router.get('/.well-known/oauth-protected-resource/mcp', (req: Request, res: Response) => {
+  const baseUrl = oauthConfig.issuer || `https://${req.headers.host}`;
+  
+  console.log(`📋 OAuth: Protected Resource Metadata (path-suffixed) solicitado desde ${req.ip}`);
+  
+  res.json({
+    resource: `${baseUrl}/mcp`,
+    authorization_servers: [baseUrl],
+    bearer_methods_supported: ['header'],
+    scopes_supported: ['mcp:read', 'mcp:write']
+  });
+});
+
+console.log('✅ OAuth: Ruta /.well-known/oauth-protected-resource registrada');
+
+/**
  * GET /.well-known/oauth-authorization-server
  * 
  * Metadata del servidor OAuth según RFC 8414

@@ -14,7 +14,23 @@ import oauthRoutes from './oauth/routes';
 dotenv.config();
 
 const app = express();
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173', credentials: true }));
+const allowedOrigins = [
+  process.env.CORS_ORIGIN || 'http://localhost:5173',
+  'https://front-mcp-gules.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000'
+];
+app.use(cors({
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (VS Code, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.some(allowed => origin === allowed)) {
+      return callback(null, true);
+    }
+    callback(null, false);
+  },
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -23,13 +23,11 @@ export const authenticateToken = (
     if (!authHeader) {
       console.log(`⚠️  Auth Middleware: No hay token, respondiendo 401 con WWW-Authenticate`);
       
-      // Incluir WWW-Authenticate header para que VS Code inicie OAuth
+      // WWW-Authenticate per MCP Auth spec - resource_metadata points to PRM endpoint
+      const baseUrl = process.env.OAUTH_ISSUER || 'https://mcp-promps.onrender.com';
       res.setHeader(
         'WWW-Authenticate',
-        'Bearer realm="MCP Server", ' +
-        'authorization_uri="https://mcp-promps.onrender.com/authorize", ' +
-        'error="no_token", ' +
-        'error_description="No authentication token provided"'
+        `Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`
       );
       res.status(401).json({ 
         status: 'error', 
@@ -41,12 +39,10 @@ export const authenticateToken = (
 
     const parts = authHeader.split(' ');
     if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      const baseUrl = process.env.OAUTH_ISSUER || 'https://mcp-promps.onrender.com';
       res.setHeader(
         'WWW-Authenticate',
-        'Bearer realm="MCP Server", ' +
-        'authorization_uri="https://mcp-promps.onrender.com/authorize", ' +
-        'error="invalid_token", ' +
-        'error_description="Invalid token format. Use Bearer <token>"'
+        `Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource", error="invalid_token"`
       );
       res.status(401).json({ 
         status: 'error', 
@@ -73,14 +69,12 @@ export const authenticateToken = (
     console.log(`✅ Auth Middleware: Token válido para ${payload.email || payload.userId}`);
     next();
   } catch (error: any) {
+    const baseUrl = process.env.OAUTH_ISSUER || 'https://mcp-promps.onrender.com';
     if (error && error.name === 'TokenExpiredError') {
       console.log(`⚠️  Auth Middleware: Token expirado, respondiendo 401 con WWW-Authenticate`);
       res.setHeader(
         'WWW-Authenticate',
-        'Bearer realm="MCP Server", ' +
-        'authorization_uri="https://mcp-promps.onrender.com/authorize", ' +
-        'error="invalid_token", ' +
-        'error_description="Token expired"'
+        `Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource", error="invalid_token"`
       );
       res.status(401).json({ 
         status: 'error', 
@@ -93,10 +87,7 @@ export const authenticateToken = (
       console.log(`⚠️  Auth Middleware: Token inválido, respondiendo 401 con WWW-Authenticate`);
       res.setHeader(
         'WWW-Authenticate',
-        'Bearer realm="MCP Server", ' +
-        'authorization_uri="https://mcp-promps.onrender.com/authorize", ' +
-        'error="invalid_token", ' +
-        'error_description="Invalid token"'
+        `Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource", error="invalid_token"`
       );
       res.status(401).json({ 
         status: 'error', 
