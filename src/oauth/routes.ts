@@ -10,6 +10,10 @@ import express from 'express';
 
 const router = Router();
 
+// Sesiones de redirección temporales (max 2 min) para pasar el code a VS Code
+// sin depender de que el frontend redirija directamente a http://localhost
+const redirectSessions = new Map<string, { url: string; expiresAt: number }>();
+
 console.log('🔧 OAuth: Inicializando router OAuth...');
 
 /**
@@ -303,20 +307,32 @@ router.post('/oauth/callback', express.json(), async (req: Request, res: Respons
     // 6. Limpiar la solicitud OAuth (ya no se necesita)
     oauthStorage.deleteAuthRequest(oauth_request);
 
-    // 7. Construir URL de redirección para VS Code/IntelliJ
+    // 7. Construir URL final de redirección para VS Code/IntelliJ
     const redirectUrl = new URL(authRequest.redirectUri);
     redirectUrl.searchParams.set('code', authorizationCode);
     if (authRequest.state) {
       redirectUrl.searchParams.set('state', authRequest.state);
     }
 
-    console.log(`✅ OAuth: Código generado para usuario ${decoded.email}`);
-    console.log(`  🔗 Redirigiendo a: ${redirectUrl.toString()}`);
+    // 8. Guardar la URL final en una sesión temporal y devolver una URL HTTPS del backend.
+    //    Así el frontend navega a HTTPS (siempre funciona) y el backend hace el redirect
+    //    final a http://127.0.0.1:PORT (VS Code). Evita problemas de mixed-content.
+    const redirectSessionId = uuid();
+    redirectSessions.set(redirectSessionId, {
+      url: redirectUrl.toString(),
+      expiresAt: Date.now() + 2 * 60 * 1000 // 2 minutos
+    });
 
-    // 8. Responder al frontend con la URL de redirección (formato esperado por el frontend)
+    const baseUrl = (oauthConfig.issuer || `https://${req.headers.host}`).replace(/\/$/, '');
+    const frontendRedirectUrl = `${baseUrl}/oauth/redirect/${redirectSessionId}`;
+
+    console.log(`✅ OAuth: Código generado para usuario ${decoded.email}`);
+    console.log(`  🔗 Redirect session: ${redirectSessionId}`);
+    console.log(`  🔗 URL final (VS Code): ${redirectUrl.toString()}`);
+
     res.json({
       status: 'success',
-      redirectUrl: redirectUrl.toString()
+      redirectUrl: frontendRedirectUrl
     });
 
   } catch (error) {
@@ -329,6 +345,36 @@ router.post('/oauth/callback', express.json(), async (req: Request, res: Respons
 });
 
 console.log('✅ OAuth: Ruta /oauth/callback registrada');
+
+/**
+ * GET /oauth/redirect/:sessionId
+ *
+ * El frontend navega aquí (HTTPS) tras el login OAuth.
+ * El backend redirige al localhost de VS Code con el authorization_code.
+ * Esto evita que el frontend tenga que redirigir directamente a http://127.0.0.1
+ * desde una página HTTPS.
+ */
+router.get('/oauth/redirect/:sessionId', (req: Request, res: Response) => {
+  const sessionId = req.params.sessionId as string;
+  const session = redirectSessions.get(sessionId);
+
+  if (!session) {
+    console.error(`❌ OAuth /redirect: Sesión no encontrada o expirada: ${sessionId}`);
+    return res.status(404).send('Sesión OAuth expirada. Por favor, inicia el proceso de nuevo desde VS Code.');
+  }
+
+  if (Date.now() > session.expiresAt) {
+    redirectSessions.delete(sessionId);
+    console.error(`❌ OAuth /redirect: Sesión expirada: ${sessionId}`);
+    return res.status(410).send('Sesión OAuth expirada. Por favor, inicia el proceso de nuevo desde VS Code.');
+  }
+
+  redirectSessions.delete(sessionId);
+  console.log(`✅ OAuth /redirect: Redirigiendo a VS Code: ${session.url}`);
+  res.redirect(session.url);
+});
+
+console.log('✅ OAuth: Ruta /oauth/redirect/:sessionId registrada');
 
 /**
  * POST /token
