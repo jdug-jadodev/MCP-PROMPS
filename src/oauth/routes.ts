@@ -388,15 +388,18 @@ router.post('/token', express.urlencoded({ extended: true }), async (req: Reques
     code, 
     client_id, 
     redirect_uri, 
-    code_verifier,
-    refresh_token 
+    code_verifier
   } = req.body;
 
   console.log(`🔐 OAuth /token: grant_type=${grant_type}, client_id=${client_id}`);
 
-  // Soporte para refresh_token
+  // No soportamos refresh_token grants: forzar re-autenticación
   if (grant_type === 'refresh_token') {
-    return handleRefreshToken(req, res, refresh_token, client_id);
+    console.error(`❌ OAuth: refresh_token grant no soportado por política de seguridad`);
+    return res.status(400).json({ 
+      error: 'unsupported_grant_type',
+      message: 'refresh_token grant no está permitido'
+    });
   }
 
   // Validar grant_type
@@ -477,36 +480,13 @@ router.post('/token', express.urlencoded({ extended: true }), async (req: Reques
     { expiresIn: `${oauthConfig.accessTokenLifetime}s` }
   );
 
-  // 8. Generar refresh_token
-  const newRefreshToken = jwt.sign(
-    { 
-      userId: authCode.userId,
-      email: authCode.email,
-      clientId: client_id,
-      type: 'refresh_token'
-    },
-    process.env.JWT_SECRET!,
-    { expiresIn: `${oauthConfig.refreshTokenLifetime}s` }
-  );
+  console.log(`✅ Access token generado para usuario ${authCode.email} (cliente: ${client_id})`);
 
-  // Guardar refresh_token
-  const refreshTokenExpiresAt = Date.now() + oauthConfig.refreshTokenLifetime * 1000;
-  oauthStorage.saveRefreshToken(newRefreshToken, {
-    userId: authCode.userId,
-    email: authCode.email,
-    clientId: client_id,
-    scope: authCode.scope,
-    expiresAt: refreshTokenExpiresAt
-  });
-
-  console.log(`✅ Token generado para usuario ${authCode.email} (cliente: ${client_id})`);
-
-  // 9. Responder con tokens
+  // 8. Responder SOLO con access_token — sin refresh_token
   res.json({
     access_token: accessToken,
     token_type: 'Bearer',
-    expires_in: oauthConfig.accessTokenLifetime,
-    refresh_token: newRefreshToken
+    expires_in: oauthConfig.accessTokenLifetime
   });
 });
 
