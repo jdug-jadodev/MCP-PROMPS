@@ -28,9 +28,11 @@ router.get('/.well-known/oauth-protected-resource', (req: Request, res: Response
   
   console.log(`📋 OAuth: Protected Resource Metadata solicitado desde ${req.ip}`);
   
-  // resource MUST match the MCP endpoint URL per RFC 9728
+  // resource MUST match the MCP server resolved resource per RFC 9728
+  // Use the server root (with trailing slash) so clients like IntelliJ
+  // that perform strict PRConfigurationValidation find an exact match.
   res.json({
-    resource: `${baseUrl}/mcp`,
+    resource: `${baseUrl}/`,
     authorization_servers: [baseUrl],
     bearer_methods_supported: ['header'],
     scopes_supported: ['mcp:read', 'mcp:write']
@@ -44,7 +46,7 @@ router.get('/.well-known/oauth-protected-resource/mcp', (req: Request, res: Resp
   console.log(`📋 OAuth: Protected Resource Metadata (path-suffixed) solicitado desde ${req.ip}`);
   
   res.json({
-    resource: `${baseUrl}/mcp`,
+    resource: `${baseUrl}/`,
     authorization_servers: [baseUrl],
     bearer_methods_supported: ['header'],
     scopes_supported: ['mcp:read', 'mcp:write']
