@@ -10,6 +10,7 @@ import { authenticateToken } from './middleware/auth.middleware';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import { AuthenticatedRequest } from './types/auth.types';
 import oauthRoutes from './oauth/routes';
+import { oauthStorage } from './oauth/storage';
 
 dotenv.config();
 
@@ -253,6 +254,10 @@ app.get('/health', (_req: Request, res: Response) => res.json({ status: 'healthy
 // Middlewares de error (deben ir al final)
 app.use(notFoundHandler);
 app.use(errorHandler);  
+
+// ===== Iniciar tarea de limpieza de tokens revocados =====
+oauthStorage.startCleanupTask();
+console.log('🧹 OAuth: Tarea de limpieza de tokens iniciada (cada 1 hora)');
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

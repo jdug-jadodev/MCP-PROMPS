@@ -584,4 +584,125 @@ async function handleRefreshToken(req: Request, res: Response, refreshToken: str
   }
 }
 
+/**
+ * POST /oauth/revoke
+ * 
+ * Endpoint de revocación de tokens según RFC 7009
+ * 
+ * IMPORTANTE: Este endpoint DEBE responder siempre 200 OK según RFC 7009,
+ * incluso si el token no existe o ya estaba revocado.
+ * 
+ * Request:
+ *   Content-Type: application/x-www-form-urlencoded
+ *   Authorization: Bearer <access_token_del_usuario>
+ *   
+ *   Body:
+ *     token=<token_a_revocar>
+ *     token_type_hint=access_token|refresh_token (opcional)
+ * 
+ * Response:
+ *   200 OK { "status": "ok", "message": "Token revoked successfully" }
+ */
+router.post('/oauth/revoke', 
+  express.urlencoded({ extended: true }), 
+  express.json(), 
+  async (req: Request, res: Response) => {
+    const { token, token_type_hint } = req.body;
+    const authHeader = req.headers.authorization;
+    
+    console.log(`🔐 OAuth /revoke: ===== SOLICITUD DE REVOCACIÓN =====`);
+    console.log(`  📋 token_type_hint: ${token_type_hint || 'no especificado'}`);
+    console.log(`  📋 IP: ${req.ip}`);
+    
+    // 1. Validar que existe token a revocar
+    if (!token || token.trim().length === 0) {
+      console.log(`⚠️ OAuth /revoke: Token vacío, respondiendo OK`);
+      return res.status(200).json({ status: 'ok', message: 'Token processed' });
+    }
+    
+    // 2. Validar autenticación
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error(`❌ OAuth /revoke: No autenticado`);
+      return res.status(401).json({ 
+        error: 'invalid_client', 
+        message: 'Se requiere autenticación para revocar tokens'
+      });
+    }
+    
+    const userAccessToken = authHeader.split(' ')[1];
+    
+    try {
+      // 3. Verificar el access_token del usuario
+      const decoded = jwt.verify(userAccessToken, process.env.JWT_SECRET!) as any;
+      const userId = decoded.userId;
+      const email = decoded.email;
+      
+      console.log(`✅ OAuth /revoke: Usuario autenticado: ${email}`);
+      
+      // 4. Decodificar el token a revocar (sin verificar firma)
+      let tokenData: any;
+      try {
+        tokenData = jwt.decode(token) as any;
+      } catch (e) {
+        console.warn(`⚠️ OAuth /revoke: Token no decodificable`);
+        return res.status(200).json({ status: 'ok', message: 'Token processed' });
+      }
+      
+      if (!tokenData || !tokenData.userId) {
+        console.warn(`⚠️ OAuth /revoke: Token sin userId`);
+        return res.status(200).json({ status: 'ok', message: 'Token processed' });
+      }
+      
+      // 5. Verificar ownership del token
+      if (tokenData.userId !== userId) {
+        console.error(`❌ OAuth /revoke: ${userId} intentó revocar token de ${tokenData.userId}`);
+        // RFC 7009: responder OK para no revelar información
+        return res.status(200).json({ status: 'ok', message: 'Token processed' });
+      }
+      
+      // 6. Determinar tipo y expiración
+      const tokenType = token_type_hint || tokenData.type || 'access_token';
+      const clientId = tokenData.clientId || 'unknown';
+      const expiresAt = tokenData.exp 
+        ? tokenData.exp * 1000 
+        : Date.now() + 7 * 24 * 60 * 60 * 1000;
+      
+      // 7. 🔑 REVOCAR EL TOKEN
+      oauthStorage.revokeToken(
+        token,
+        userId,
+        email,
+        clientId,
+        tokenType === 'refresh_token' ? 'refresh_token' : 'access_token',
+        expiresAt,
+        'user_revocation'
+      );
+      
+      console.log(`✅ OAuth /revoke: Token revocado exitosamente`);
+      
+      // 8. RFC 7009: SIEMPRE responder 200 OK
+      res.status(200).json({ 
+        status: 'ok',
+        message: 'Token revoked successfully'
+      });
+      
+    } catch (error: any) {
+      console.error(`❌ OAuth /revoke: Error:`, error.message);
+      
+      if (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError') {
+        return res.status(401).json({ 
+          error: 'invalid_client',
+          message: 'Token de autenticación inválido o expirado'
+        });
+      }
+      
+      return res.status(500).json({ 
+        error: 'server_error',
+        message: 'Error interno del servidor'
+      });
+    }
+});
+
+console.log('✅ OAuth: Ruta /oauth/revoke (RFC 7009) registrada');
+
 export default router;

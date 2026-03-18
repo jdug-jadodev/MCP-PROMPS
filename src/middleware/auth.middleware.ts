@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AuthenticatedRequest, JWTPayload } from '../types/auth.types';
+import { oauthStorage } from '../oauth/storage';
 
 /**
  * Middleware de autenticación para MCP Server con soporte OAuth
@@ -67,6 +68,27 @@ export const authenticateToken = (
     }
 
     const token = parts[1];
+    
+    // ===== Verificar si el token está revocado =====
+    if (oauthStorage.isTokenRevoked(token)) {
+      console.log(`⚠️  Auth Middleware: Token revocado detectado`);
+      const baseUrl = process.env.OAUTH_ISSUER || 'https://mcp-promps.onrender.com';
+      res.setHeader(
+        'WWW-Authenticate',
+        `Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource", error="invalid_token", error_description="Token has been revoked"`
+      );
+      res.status(401).json({ 
+        jsonrpc: '2.0',
+        id: req.body?.id || null,
+        error: {
+          code: -32001,
+          message: 'Token has been revoked. Please authenticate again.'
+        }
+      });
+      return;
+    }
+    // ===== FIN validación de blacklist =====
+    
     const JWT_SECRET = process.env.JWT_SECRET;
     if (!JWT_SECRET) {
       console.error('JWT_SECRET no está configurado');

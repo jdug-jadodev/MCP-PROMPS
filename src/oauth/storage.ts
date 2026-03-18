@@ -51,6 +51,23 @@ export interface RefreshTokenData {
 }
 
 /**
+ * Token revocado (blacklist)
+ * 
+ * NOTA: Los access_tokens de MCP no tienen jti como el backend de login,
+ * por lo que almacenamos el hash SHA-256 del token completo.
+ */
+export interface RevokedToken {
+  tokenHash: string;           // SHA-256 del token completo
+  userId: string;
+  email: string;
+  clientId: string;
+  tokenType: 'access_token' | 'refresh_token';
+  revokedAt: number;           // Timestamp de revocación
+  expiresAt: number;           // Cuando limpiar de blacklist
+  reason?: string;             // Motivo: "user_logout", "admin_revocation"
+}
+
+/**
  * Clase singleton para gestionar almacenamiento OAuth
  */
 class OAuthStorage {
@@ -58,6 +75,9 @@ class OAuthStorage {
   private authorizationCodes: Map<string, AuthorizationCode> = new Map();
   private refreshTokens: Map<string, RefreshTokenData> = new Map();
   private dynamicClients: Map<string, any> = new Map();
+  
+  // ===== NUEVO: Blacklist de tokens revocados =====
+  private revokedTokens: Map<string, RevokedToken> = new Map();
 
   // ===== DYNAMIC CLIENTS =====
   
@@ -194,6 +214,135 @@ class OAuthStorage {
       authCodes: this.authorizationCodes.size,
       refreshTokens: this.refreshTokens.size
     };
+  }
+
+  // ===== REVOKED TOKENS =====
+
+  /**
+   * Hashear token con SHA-256
+   * No almacenamos el token completo por seguridad
+   */
+  private hashToken(token: string): string {
+    const crypto = require('crypto');
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
+  /**
+   * Revocar un token (añadirlo a la blacklist)
+   */
+  revokeToken(
+    token: string, 
+    userId: string, 
+    email: string, 
+    clientId: string, 
+    tokenType: 'access_token' | 'refresh_token', 
+    expiresAt: number, 
+    reason?: string
+  ): void {
+    const tokenHash = this.hashToken(token);
+    
+    const revokedData: RevokedToken = {
+      tokenHash,
+      userId,
+      email,
+      clientId,
+      tokenType,
+      revokedAt: Date.now(),
+      expiresAt,
+      reason: reason || 'user_revocation'
+    };
+    
+    this.revokedTokens.set(tokenHash, revokedData);
+    
+    console.log(`🚫 OAuth: Token revocado (${tokenType})`);
+    console.log(`  👤 Usuario: ${email} (${userId})`);
+    console.log(`  🖥️  Cliente: ${clientId}`);
+    console.log(`  📋 Motivo: ${revokedData.reason}`);
+    console.log(`  ⏰ Expira: ${new Date(expiresAt).toISOString()}`);
+    
+    // Si es refresh_token, también eliminarlo del storage activo
+    if (tokenType === 'refresh_token') {
+      this.deleteRefreshToken(token);
+    }
+  }
+
+  /**
+   * Verificar si un token está revocado
+   */
+  isTokenRevoked(token: string): boolean {
+    const tokenHash = this.hashToken(token);
+    const revoked = this.revokedTokens.get(tokenHash);
+    
+    if (!revoked) {
+      return false;
+    }
+    
+    // Si el token ya expiró naturalmente, limpiarlo de la blacklist
+    if (Date.now() > revoked.expiresAt) {
+      this.revokedTokens.delete(tokenHash);
+      console.log(`🧹 OAuth: Token revocado limpiado (expiró naturalmente)`);
+      return false;
+    }
+    
+    return true;
+  }
+
+  /**
+   * Revocar todos los tokens de un usuario
+   */
+  revokeAllUserTokens(userId: string, reason?: string): number {
+    let count = 0;
+    
+    this.refreshTokens.forEach((data, token) => {
+      if (data.userId === userId) {
+        this.revokeToken(
+          token, 
+          data.userId, 
+          data.email, 
+          data.clientId, 
+          'refresh_token', 
+          data.expiresAt, 
+          reason || 'revoke_all_sessions'
+        );
+        count++;
+      }
+    });
+    
+    console.log(`🚫 OAuth: Revocados ${count} tokens para usuario ${userId}`);
+    return count;
+  }
+
+  /**
+   * Limpiar tokens revocados que ya expiraron
+   */
+  cleanExpiredRevokedTokens(): number {
+    const now = Date.now();
+    let count = 0;
+    
+    this.revokedTokens.forEach((data, hash) => {
+      if (now > data.expiresAt) {
+        this.revokedTokens.delete(hash);
+        count++;
+      }
+    });
+    
+    if (count > 0) {
+      console.log(`🧹 OAuth: Limpiados ${count} tokens expirados de blacklist`);
+    }
+    
+    return count;
+  }
+
+  /**
+   * Iniciar limpieza periódica de tokens expirados
+   */
+  startCleanupTask(): void {
+    setInterval(() => {
+      console.log('🧹 OAuth: Ejecutando limpieza automática...');
+      this.cleanExpiredRevokedTokens();
+    }, 60 * 60 * 1000); // Cada 1 hora
+    
+    console.log('✅ OAuth: Tarea de limpieza programada (cada 1 hora)');
   }
 }
 
