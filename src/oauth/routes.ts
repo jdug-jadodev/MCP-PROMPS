@@ -78,7 +78,7 @@ router.get('/.well-known/oauth-authorization-server', (req: Request, res: Respon
     token_endpoint: `${baseUrl}/token`,
     registration_endpoint: `${baseUrl}/oauth/register`,
     response_types_supported: ['code'],
-    grant_types_supported: ['authorization_code', 'refresh_token'],
+    grant_types_supported: ['authorization_code'],
     token_endpoint_auth_methods_supported: ['none', 'client_secret_post'],
     code_challenge_methods_supported: ['S256', 'plain'],
     scopes_supported: ['mcp:read', 'mcp:write']
@@ -132,7 +132,7 @@ router.post('/oauth/register', express.json(), (req: Request, res: Response) => 
     client_id: clientId,
     client_name: client_name || 'Dynamic Client',
     redirect_uris: redirect_uris || ['http://127.0.0.1:*', 'http://localhost:*'],
-    grant_types: grant_types || ['authorization_code', 'refresh_token'],
+    grant_types: grant_types || ['authorization_code'],
     token_endpoint_auth_method: token_endpoint_auth_method || 'none',
     scope: scope || 'mcp:read mcp:write'
   });
