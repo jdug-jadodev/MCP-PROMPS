@@ -6,31 +6,6 @@
 
 ---
 
-## FASE 0 — Preparación y respaldo (sin tocar código)
-
-### 0.1 — Crear rama git de seguridad
-```bash
-git checkout -b backup/pre-daemon-migration
-git push origin backup/pre-daemon-migration
-git checkout -b feat/daemon-mode
-```
-**Verificación:** `git branch` muestra las tres ramas. La rama `backup/...` no se toca más.
-
-### 0.2 — Snapshot del estado actual
-```bash
-git add -A
-git commit -m "chore: snapshot antes de migración a daemon"
-```
-**Verificación:** `git log --oneline -3` muestra el commit de snapshot.
-
-### 0.3 — Verificar que el build actual funciona antes de tocar nada
-```bash
-npm run build
-```
-**Verificación:** Sin errores en `dist/`. Si hay errores previos, resolverlos antes de continuar.
-
----
-
 ## FASE 1 — Limpiar archivos de infraestructura cloud y OAuth
 
 > Estos archivos no tienen dependencias entrantes en `src/index.ts`. Se eliminan primero porque no afectan el servidor principal.
@@ -41,13 +16,12 @@ Eliminar los siguientes archivos:
 src/scripts/keepalive.ts
 test-oauth.js
 test-vscode-flow.js
-monitor.js
 ```
 
 **Comando:**
 ```bash
 Remove-Item "src\scripts\keepalive.ts"
-Remove-Item "test-oauth.js", "test-vscode-flow.js", "monitor.js"
+Remove-Item "test-oauth.js", "test-vscode-flow.js"
 ```
 
 **Verificación:** `Get-ChildItem src/scripts/` muestra solo `script-java.js` y `script-vscode.js`.
