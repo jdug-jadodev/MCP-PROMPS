@@ -16,7 +16,7 @@ import { generadorScriptRegistroCommitTemplate } from './crear-script-registro-c
 import { generadorPlanTrabajo } from './generador-plan-trabajo.js';
 import { generadorIndiceProyectoTemplate } from './indice-proyecto.js';
 
-export const templates = {
+export const templates: Record<string, string> = {
   'explicador-codigo-mcp': explicadorCodigoTemplate,
   'actualizador-readme-principal': actualizadorReadmeTemplate,
   'revisor-de-codigo-autonomo-mcp': revisorCodigoTemplate,

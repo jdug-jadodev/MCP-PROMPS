@@ -1,0 +1,34 @@
+# Código fuente (solo publicar compilado)
+src/
+
+# Archivos de desarrollo
+tsconfig.json
+.gitignore
+.env
+.env.example
+
+# Documentación de desarrollo
+analisis-calidad-codigo.md
+cambios-registro.md
+informe-exploracion.md
+ONE_SPEC.md
+PROMPTS_INDEX.md
+monitor.js
+
+# Scripts auxiliares
+src/scripts/
+
+# Dependencias
+node_modules/
+
+# Git
+.git/
+.github/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
