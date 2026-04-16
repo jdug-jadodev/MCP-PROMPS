@@ -100,17 +100,11 @@ Ejemplo Windows: `C:\Users\Usuario\AppData\Roaming\JetBrains\IntelliJIdea2024.1\
 
 Crea el archivo `mcp-settings.xml` con el siguiente contenido:
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<mcpSettings>
-    <servers>
-        <server>
-            <name>mcp-prompts-server</name>
-            <command>mcp-daemon-prompts-server-jdug</command>
-            <disabled>false</disabled>
-        </server>
-    </servers>
-</mcpSettings>
+```json
+    "mcp-daemon-prompts-server": {
+      "command": "mcp-daemon-prompts-server-jdug",
+      "disabled": false
+    }
 ```
 
 ### 3. Reiniciar IntelliJ IDEA
