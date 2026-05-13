@@ -39,3 +39,7 @@ cambios-registro.md
 .env
 .env.example
 *.log
+
+# Documentos de análisis local
+informe-exploracion.md
+analisis-calidad-codigo.md

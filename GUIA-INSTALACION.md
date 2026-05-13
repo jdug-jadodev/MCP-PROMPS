@@ -16,7 +16,7 @@
 ## 🔧 Requisitos Previos
 
 - **Node.js**: versión 18 o superior
-- **npm**: versión 8 o superior
+- **pnpm**: versión 9 o superior
 - **VS Code** o **IntelliJ IDEA** con soporte MCP
 
 ---
@@ -26,7 +26,7 @@
 ### Instalación Global (Recomendada)
 
 ```bash
-npm install -g mcp-daemon-prompts-server-jdug
+pnpm add -g mcp-daemon-prompts-server-jdug
 ```
 
 Esto instalará el servidor globalmente y estará disponible desde cualquier ubicación.
@@ -70,8 +70,8 @@ Añade o actualiza la sección `mcpServers` en tu `settings.json`:
 ```
 
 ⚠️ **Importante**: 
-- No necesitas especificar rutas absolutas, npm maneja esto automáticamente
-- Si instalaste localmente (sin -g), usa `"command": "npx"` y `"args": ["mcp-daemon-prompts-server-jdug"]`
+- No necesitas especificar rutas absolutas, pnpm maneja esto automáticamente
+- Si instalaste localmente (sin -g), usa `"command": "pnpm"` y `"args": ["exec", "mcp-daemon-prompts-server-jdug"]`
 
 ### 3. Reiniciar VS Code
 

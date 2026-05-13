@@ -4,7 +4,7 @@
 
 Si ejecutaste:
 ```bash
-npm install -g mcp-daemon-prompts-server-jdug
+pnpm add -g mcp-daemon-prompts-server-jdug
 ```
 
 El servidor ya está instalado y listo. Ahora solo necesitas configurar tu IDE.
