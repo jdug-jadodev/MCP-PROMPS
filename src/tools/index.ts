@@ -1,3 +1,3 @@
-import { Tool } from "./types";
+import { Tool } from "./types.js";
 
 export const tools: Tool[] = [];
