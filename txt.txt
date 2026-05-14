@@ -1,0 +1,157 @@
+patrones mas efectivos para el ahorro de tokens y la preservacion de contexto mas efectiva para los agentes de IA en proyectos gigantesLas estrategias efectivas para la optimización de tokens y la preservación del contexto en proyectos de IA a gran escala implican arquitecturas y técnicas avanzadas de recuperación de datos. Los patrones efectivos incluyen:Generación Aumentada por Recuperación (RAG) Jerárquica y Estructurada: Dividir los datos en nodos y utilizar un resumen o nodo padre para el contexto general. Esto permite a un agente determinar si se necesita leer el documento detallado, lo que puede ahorrar hasta un 80% de tokens en consultas generales, utilizando herramientas como LlamaIndex o LangChain.Memoria Episódica y Resumen Acumulativo: Para la interacción continua, se usa el patrón de ventana deslizante combinado con un resumen continuo, como la memoria de suma. Los mensajes más antiguos se reemplazan con un resumen a medida que crece el historial del chat, lo que mantiene el hilo sin consumir todo el contexto.Filtros de Re-Clasificación (Reranking): Implementar modelos de re-clasificación como Cohere Rerank o BGE Reranker después de la recuperación vectorial. Esto permite recuperar muchos documentos inicialmente y enviar solo los k más relevantes al modelo principal, optimizando el uso de tokens.Gestión de Indicaciones Semilla (Prompt Caching): Aprovechar las API que admiten el almacenamiento en caché de contexto, como Anthropic Claude o Google Gemini. Colocar las instrucciones del sistema y los documentos de referencia estáticos al principio de la indicación puede reducir el costo y la latencia hasta en un 90%.Uso de Modelos Mixtos (Enrutamiento de Agentes): Delegar subtareas a modelos más rápidos y económicos, como un modelo de la familia Haiku o Flash. Utilizar modelos de razonamiento pesado como Opus o Gemini Pro solo para sintetizar la información final, en lugar de para todo el proyecto.Para obtener más información sobre la implementación de estas arquitecturas y el manejo de bases de datos vectoriales a gran escala, consulte la documentación técnica de Pinecone y LangSmith para el monitoreo y ajuste de las indicaciones.me interesa esto del cache de prompt cahcing, que tan eficiente es y como lo puedo agregar o crear yo mismo con mis propias herramientas?El Prompt Caching es una de las tecnologías más disruptivas para optimizar agentes de IA, ya que no almacena la respuesta final (como un caché tradicional), sino los estados de atención intermedios (KV-Cache) generados al procesar el texto inicial.1. ¿Qué tan eficiente es?Los beneficios son masivos cuando se trabaja con contextos grandes (más de 1,024 tokens):Reducción de costos (~90%): Los proveedores principales cobran los tokens leídos desde el caché a una fracción del costo estándar. Por ejemplo, en Claude de Anthropic u OpenAI API, un token cacheado cuesta un 90% menos que un token de entrada normal.Velocidad extrema (~80% de menor latencia): Reduce el Time-To-First-Token (TTFT) hasta en un 85%. El modelo no tiene que volver a "leer" el documento, por lo que empieza a responder casi al instante.2. Cómo estructurar tus prompts para aprovecharloEl caché funciona mediante la coincidencia de prefijos exactos. Si cambia un solo carácter al principio del prompt, todo el caché posterior se invalida. Debes ordenar tu prompt jerárquicamente de lo más estático a lo más dinámico:Herramientas y Funciones (Estático): Definiciones de las herramientas que usa el agente.Instrucciones del Sistema (Estático): El comportamiento base del agente.Documentos de Referencia (Semi-estático): Bases de datos fijas, regulaciones o PDFs contextuales de la sesión.Historial de Conversación (Dinámico incremental): Crece ordenadamente (los mensajes viejos no cambian).Última pregunta del usuario (Completamente dinámico): Debe ir siempre al final.3. Cómo crearlo e implementarlo tú mismo (Arquitectura Custom)Si estás construyendo tu propia infraestructura (con modelos locales como Llama 3 en servidores propios) o controlando el middleware de tus agentes, puedes crear tu propio sistema de caché bajo dos enfoques:Enfoque A: Caché Semántico / Exacto en tu Aplicación (Caché de Salida)Este es el método más sencillo si usas tus propias herramientas de código (Python, Redis). Consiste en interceptar la pregunta del usuario antes de que llegue al LLM.pythonimport hashlib
+import redis
+from sentence_transformers import SentenceTransformer
+
+# Inicializar Redis y modelo de embeddings
+r = redis.Redis(host='localhost', port=6379, db=0)
+embed_model = SentenceTransformer('all-MiniLM-L6-v2')
+
+def get_agent_response(system_prompt, user_query):
+    # Crear una llave única combinando el contexto estático y la pregunta
+    payload = f"{system_prompt}|||{user_query}".encode('utf-8')
+    cache_key = hashlib.md5(payload).hexdigest()
+    
+    # 1. Intento de coincidencia exacta
+    cached_res = r.get(cache_key)
+    if cached_res:
+        return cached_res.decode('utf-8') # Cache Hit!
+        
+    # 2. Opcional: Búsqueda Semántica usando Redis Vector Search (Similitud > 0.95)
+    # Si una pregunta similar ya se respondió con el mismo contexto, regresa esa respuesta.
+
+    # 3. Cache Miss: Llamar al LLM corporativo
+    response = call_your_llm(system_prompt, user_query)
+    
+    # Guardar en caché con un tiempo de vida (TTL) de 1 hora
+    r.setex(cache_key, 3600, response)
+    return response
+Usa el código con precaución.Enfoque B: Reuso de KV-Cache a nivel de Servidor (Caché de Entrada Local)Si hospedas tus propios modelos utilizando motores de inferencia avanzados como vLLM, TGI (Text Generation Inference) o Ollama, el "Prompt Caching" técnico (el almacenamiento de los estados de atención) ya viene implementado a nivel de arquitectura mediante una característica llamada Automatic Prefix Caching (APC).Para activarlo en tus propias herramientas y servidores:Lanza tu servidor vLLM con el flag de caché de prefijos activado:bashpython -m vllm.entrypoints.openai.api_server \
+    --model meta-llama/Meta-Llama-3-8B-Instruct \
+    --enable-prefix-caching \
+    --gpu-memory-utilization 0.90
+Usa el código con precaución.Mecanismo interno: Cuando tu agente envíe un prompt masivo con el mismo archivo de contexto, vLLM detectará que los primeros N tokens coinciden exactamente con una petición anterior guardada en la memoria de la GPU. Saltará el cálculo matemático de esos tokens y procesará únicamente la nueva línea de consulta.Para avanzar en tu desarrollo, indícame si estás consumiendo APIs comerciales o si vas a desplegar modelos en servidores propios. Puedo proporcionarte el código de integración exacto para tu entorno.11 sitiosOpenAI Prompt Caching API Tutorial: The Secret to Faster and ...1 oct 2024 — bien la gente de OpenI está presentando este pron catching básicamente pues catchear tus pron para que puedas ahorrar a la hora de...7mYouTube·LLM Master CursosPrompt caching - Claude API Docs13 may 2026 — * Messages. * Managed Agents. * Admin. * Resources. ... With automatic caching, the system caches all content up to and including ...Claude PlatformPrompt caching: 10x cheaper LLM tokens, but how? | ngrok blog16 dic 2025 — As I write this post, cached input tokens are 10x cheaper in dollars per token than regular input tokens for both OpenAI and Anthr...NgrokMostrar todoy si creo un mcp de cahcing para que los agentes de vs code o intellij puedan almacenar el caching ahi o algo asi?Crear un servidor propio bajo el Model Context Protocol (MCP) para gestionar el caché de contexto en entornos de desarrollo (como VS Code con Cline / Roo Code o IntelliJ) es una solución viable y altamente eficiente.Dado que un servidor MCP no puede interceptar ni modificar directamente el backend de la GPU para congelar los estados de atención (KV-Cache) de los proveedores comerciales, su función principal cambia hacia la orquestación inteligente y el almacenamiento semántico / de texto estructurado.¿Cómo funcionaría tu MCP de Caching?Un agente de desarrollo en VS Code suele leer bases de código completas, documentación y estructuras de directorios repetidamente, lo que infla los costos. Tu servidor MCP actuará como un intermediario que expone herramientas (tools) y recursos (resources) optimizados.[ Agente (VS Code / Cline) ] 
+       │ 
+       ▼ (Llamada JSON-RPC)
+ [ Tu Servidor MCP de Caching ] ──► Compara Hashes / Similitud Semántica
+       │ 
+       ├──► [ Hit ] ──► Devuelve código/contexto resumido o pre-procesado rápidamente.
+       └──► [ Miss ] ─► Lee del disco, actualiza el caché y formatea con "Cache-Control".
+El Patrón de Implementación (Python SDK)El servidor MCP expondrá una herramienta para consultar archivos o estados del proyecto de forma controlada. Utilizará un hashing determinista para validar si los archivos del entorno de desarrollo han cambiado.pythonimport hashlib
+import os
+from mcp.server.fastmcp import FastMCP
+
+# Inicializar el servidor MCP
+mcp = FastMCP("Smart-Code-Cache")
+
+# Diccionario en memoria (o base de datos SQLite/Redis local)
+_CACHE_STORE = {}
+
+def generate_file_hash(filepath: str) -> str:
+    """Genera un hash único basado en el contenido del archivo."""
+    if not os.path.exists(filepath):
+        return ""
+    with open(filepath, "rb") as f:
+        return hashlib.md5(f.read()).hexdigest()
+
+@mcp.tool()
+def get_cached_codebase_context(file_paths: list[str]) -> str:
+    """
+    Recupera el contenido de múltiples archivos de código de forma optimizada.
+    Si el archivo no ha cambiado, devuelve una versión ya estructurada y anotada
+    para forzar el Prompt Caching del proveedor LLM.
+    """
+    optimized_output = []
+    
+    for path in file_paths:
+        current_hash = generate_file_hash(path)
+        if not current_hash:
+            continue
+            
+        # Verificar si ya procesamos este archivo idéntico antes
+        if path in _CACHE_STORE and _CACHE_STORE[path]["hash"] == current_hash:
+            # Hit de caché a nivel de texto estructurado
+            optimized_output.append(_CACHE_STORE[path]["structured_text"])
+        else:
+            # Miss: Leer y procesar formalmente el archivo
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read()
+                
+            # Formateamos rígidamente para facilitar el matching de prefijos del LLM
+            structured_text = f"=== FILE: {path} ===\nHASH: {current_hash}\n{content}\n"
+            
+            _CACHE_STORE[path] = {
+                "hash": current_hash,
+                "structured_text": structured_text
+            }
+            optimized_output.append(structured_text)
+            
+    return "\n".join(optimized_output)
+
+if __name__ == "__main__":
+    mcp.run(transport="stdio") # Transporte estándar compatible con IDEs
+Usa el código con precaución.3 Reglas para que los agentes no rompan el caché de las APIsAl registrar tu servidor en la configuración de la extensión del IDE (por ejemplo, en el archivo mcpServers de Cline), debes instruir a tu agente mediante prompts del sistema para que use la herramienta de caché respetando estas reglas:Invocación en Bloque Fijo: El agente debe pedir todos los archivos del contexto de una sola vez mediante la herramienta, en lugar de hacer llamadas individuales intermitentes. Esto agrupa el bloque de texto estático al inicio del prompt.Uso de Anclajes de Encabezado: Al estructurar la salida del MCP incluyendo el hash determinista al principio de cada bloque de archivo, el LLM puede identificar inmediatamente si el prefijo completo de ese archivo coincide exactamente con solicitudes de minutos anteriores.Inyección Automática de Cache-Control: Si tu infraestructura MCP de desarrollo interactúa directamente con clientes que consumen la API de Anthropic, puedes configurar tu código para adjuntar de forma automática el encabezado {"type": "text", "text": "...", "cache_control": {"type": "ephemeral"}} en los bloques pesados que el MCP retorne.¿Qué extensión de agente usas en tu IDE (ej. Cline, Roo Code, ChatGPT Copilot) y con qué proveedor de LLM (Anthropic, OpenAI u Ollama) interactúa principalmente? Con ese detalle te muestro la configuración exacta del JSON para conectarlos.13 sitiosWhat is Prompt Caching? Optimize LLM Latency with AI ...7 feb 2026 — prompt caching can significantly improve the speed and cost effectiveness of large language models. sounds good sign me up but um.9mYouTube·IBM TechnologyPrompt Caching for AI Agents: How to Cut Cost and Latency ...28 abr 2026 — Support, sales, and ops assistants often carry company policy, escalation logic, tone rules, and formatting constraints across tho...Medium·Anna JeyNew course: Semantic Caching for AI Agents19 nov 2025 — i'm thrilled to introduce semantic caching for AI agents built in partnership with Reddis and taught by Tyler Hutchinson. and IA Z...1:33YouTube·DeepLearningAIMostrar todosolo github copilotGitHub Copilot cuenta con soporte nativo para servidores MCP, lo que te permite optimizar el consumo de tokens cuando el agente analiza bases de código extensas.Dado que Copilot no permite que un MCP controle directamente los encabezados de la API de OpenAI o Anthropic para activar el Prompt Caching comercial por debajo de la mesa, la estrategia para un MCP de Caching en Copilot se enfoca en la compresión y estructuración estricta del contexto antes de entregarlo al chat del IDE.1. El código del Servidor MCP de Caching (Python)Este servidor expone una herramienta para que Copilot lea archivos extensos de manera comprimida y estructurada. Utiliza anclajes semánticos fijos (hashes de archivos). Esto ayuda a que los motores de inferencia de Copilot reconozcan los bloques de texto repetidos en peticiones sucesivas, lo que reduce la latencia de respuesta.Crea un archivo llamado cache_server.py:pythonimport hashlib
+import os
+from mcp.server.fastmcp import FastMCP
+
+# Inicializar servidor MCP nativo
+mcp = FastMCP("copilot-smart-cache")
+
+def get_file_fingerprint(path: str) -> str:
+    """Genera un identificador único determinista para el archivo."""
+    if not os.path.exists(path):
+        return ""
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+@mcp.tool()
+def read_compressed_codebase(file_paths: list[str]) -> str:
+    """
+    Lee múltiples archivos de código aplicando un formato estructural estricto.
+    Ayuda a optimizar los tokens enviados al agente de GitHub Copilot.
+    """
+    output_blocks = []
+    
+    for path in file_paths:
+        fingerprint = get_file_fingerprint(path)
+        if not fingerprint:
+            continue
+            
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            content = f.read()
+            
+        # Formato rígido: Los hashes fijos actúan como anclajes visuales y semánticos
+        # para que el LLM reutilice los tokens de atención (KV-Cache interno del backend)
+        block = f"### BUNDLE_START: {path}\n"
+        block += f"FINGERPRINT: {fingerprint}\n"
+        block += f"```\n{content}\n```\n"
+        block += f"### BUNDLE_END: {path}\n"
+        
+        output_blocks.append(block)
+        
+    return "\n".join(output_blocks)
+
+if __name__ == "__main__":
+    mcp.run(transport="stdio")
+Usa el código con precaución.2. Cómo conectarlo en VS CodeVS Code lee la configuración de servidores MCP locales directamente de la carpeta de tu espacio de trabajo o proyecto actual.En la raíz de tu proyecto, crea una carpeta llamada .vscode.Dentro, crea el archivo mcp.json:json{
+  "mcpServers": {
+    "copilot-smart-cache": {
+      "command": "python",
+      "args": ["/ruta/absoluta/a/tu/cache_server.py"],
+      "tools": ["read_compressed_codebase"]
+    }
+  }
+}
+Usa el código con precaución.(Asegúrate de cambiar /ruta/absoluta/a/tu/cache_server.py por la ubicación real del archivo en tu disco).Al abrir el chat de GitHub Copilot en Agent Mode, este detectará automáticamente el servidor MCP y habilitará la herramienta instalada.3. Cómo conectarlo en IntelliJ IDEAPara los IDEs de JetBrains como IntelliJ, el procedimiento sigue la misma especificación estándar de transporte stdio:Cambia la vista del chat de GitHub Copilot al Agent Model.Haz clic en el ícono de Tools (Herramientas) y selecciona Add More Tools...El IDE abrirá el archivo de configuración global mcp.json. Agrega la estructura del servidor:json{
+  "mcpServers": {
+    "copilot-smart-cache": {
+      "command": "python",
+      "args": ["C:\\Ruta\\A\\tu\\cache_server.py"],
+      "tools": ["read_compressed_codebase"]
+    }
+  }
+}
+Usa el código con precaución.4. Instrucciones para guiar a CopilotPara evitar que Copilot use comandos tradicionales de lectura de archivos (como cat o lecturas individuales) que invalidan el caché semántico, añade Instrucciones Personalizadas en la configuración de tu extensión de Copilot (a través del archivo .github/copilot-instructions.md en tu repositorio):markdown# Instrucciones de Contexto para el Agente
+- Cuando necesites analizar múltiples archivos de código o documentaciones extensas, NO utilices herramientas de lectura individuales.
+- Invoca SIEMPRE la herramienta `read_compressed_codebase` del MCP de caché pasando la lista completa de archivos en una sola llamada.
+- Mantén la estructura de los bloques `BUNDLE_START` y `FINGERPRINT` intactos al procesar la información para optimizar la ventana de contexto.
+Usa el código con precaución.
